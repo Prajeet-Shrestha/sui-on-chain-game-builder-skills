@@ -15,12 +15,21 @@ name = "my_game"
 edition = "2024.beta"
 
 [dependencies]
-world = { local = "../../engine/world" }
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet", override = true }
+world = { git = "https://github.com/Prajeet-Shrestha/sui-game-engine.git", subdir = "world", rev = "main" }
 
 [addresses]
 my_game = "0x0"
 ```
+
+> **Note:** The `world` package transitively depends on `entity`, `components`, and `systems` — so you only need `world` in most cases.
+>
+> If your game contract needs to **directly import types** from the lower-level packages (e.g., `entity::entity::Entity`, `components::health::Health`, or `systems::combat_sys`), add them explicitly:
+> ```toml
+> entity = { git = "https://github.com/Prajeet-Shrestha/sui-game-engine.git", subdir = "entity", rev = "main" }
+> components = { git = "https://github.com/Prajeet-Shrestha/sui-game-engine.git", subdir = "components", rev = "main" }
+> systems = { git = "https://github.com/Prajeet-Shrestha/sui-game-engine.git", subdir = "systems", rev = "main" }
+> ```
 
 ---
 

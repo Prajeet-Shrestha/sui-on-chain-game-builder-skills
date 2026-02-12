@@ -54,11 +54,12 @@ Systems:    grid_sys, spawn_sys, turn_sys, win_condition_sys
 **Read:** [game_template.md](./game_template.md)
 
 **Do:**
-1. Create `Move.toml` with `world` dependency
-2. Create module file: `sources/game.move`
-3. Copy the module skeleton from the template
-4. Define error constants
-5. Define game state constants
+1. Create `Move.toml` with `world` git dependency (see [game_template.md](./game_template.md) for the exact `Move.toml`)
+2. If the game needs direct access to `entity`, `components`, or `systems` types, add those git dependencies too
+3. Create module file: `sources/game.move`
+4. Copy the module skeleton from the template
+5. Define error constants
+6. Define game state constants
 
 **Output:** A compilable (but empty) module.
 
