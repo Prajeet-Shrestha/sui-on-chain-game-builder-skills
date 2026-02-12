@@ -21,6 +21,8 @@ description: Build fully on-chain games by composing the ECS game engine's syste
 > Grid, TurnState, and GameSession are all satellites of the one World.
 > When referencing a game externally, use the World's object ID.
 >
+> **World creation MUST happen in the `init` function** — this guarantees exactly one World per contract deployment. Never create a World in a regular entry function.
+>
 > **Never** reimplement health tracking, grid management, damage calculation, or any other engine primitive.
 > **Always** reach for the existing system first.
 >

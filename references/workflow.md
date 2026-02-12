@@ -97,8 +97,8 @@ sources/
 **Read:** [world_api.md](./world_api.md) for exact function signatures
 
 **Do:**
-1. Write `create_game()` — creates World, Grid, GameSession, TurnState
-2. Write `join_game()` — spawns player entity
+1. Write `init()` — creates World, Grid, GameSession, TurnState and shares them all
+2. Write `join_game()` — adds player to session, optionally spawns player entity
 3. Write `start_game()` — transitions to Active state
 4. Write action functions (move, attack, play card, etc.)
 5. Write win condition check

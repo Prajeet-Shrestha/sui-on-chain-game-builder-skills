@@ -10,19 +10,21 @@ How games span multiple transactions: creation, joining, playing, and ending.
 ## Lifecycle Overview
 
 ```
-Transaction 1: [Admin]   create_game()    → World + Grid + GameSession + TurnState shared
-Transaction 2: [Player1] join_game()      → spawn player entity
-Transaction 3: [Player2] join_game()      → spawn player entity
-Transaction 4: [Admin]   start_game()     → GameSession.state = ACTIVE
+Deploy:         [Publisher] sui client publish  → init() runs automatically
+                            → World + Grid + TurnState + GameSession shared
+Transaction 1:  [Player1]   join_game()         → spawn player entity
+Transaction 2:  [Player2]   join_game()         → spawn player entity
+Transaction 3:  [Creator]   start_game()        → GameSession.state = ACTIVE
                 ┌─────────────────────────────────────────────┐
-Transaction 5+: │ [Current Player] take_action()              │
+Transaction 4+: │ [Current Player] take_action()              │
                 │   → move + attack + end_turn (via PTB)      │
                 │   → check win condition                     │
                 └─────────────────────────────────────────────┘
-Transaction N:  [System]  game ends       → declare winner, state = FINISHED
+Transaction N:  [System]    game ends           → declare winner, state = FINISHED
 ```
 
-Every arrow is a **separate on-chain transaction** signed by the listed actor.
+The `init` function runs once on deployment. There is no separate "create game" transaction.
+Every subsequent arrow is a **separate on-chain transaction** signed by the listed actor.
 
 ---
 
@@ -30,8 +32,9 @@ Every arrow is a **separate on-chain transaction** signed by the listed actor.
 
 > [!IMPORTANT]
 > Each game instance has **exactly one World**. The World object ID is the **canonical identifier** of that game.
+> **World creation MUST happen in the `init` function** — this guarantees exactly one World per contract deployment.
 
-All other objects created during `create_game()` are **satellites** of the World:
+All other objects created during `init()` are **satellites** of the World:
 
 | Object | Relationship to World |
 |--------|----------------------|
@@ -153,7 +156,7 @@ public entry fun take_action(
 ## State Machine Transitions
 
 ```
-    create_game()       join_game()        start_game()       win condition
+      init()            join_game()        start_game()       win condition
   ───────────────→ LOBBY ─────────→ LOBBY ──────────→ ACTIVE ───────────→ FINISHED
                     │                 │                  │
                     │    (repeats     │   (player        │

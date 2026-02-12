@@ -100,25 +100,26 @@ public struct GameOver has copy, drop {
     winner: address,
 }
 
-// === Setup Functions ===
+// === Setup — World created in init (exactly one per deployment) ===
 
-/// Create a new game. Returns World, Grid, GameSession, TurnState.
-/// All must be shared after creation.
-public fun create_game(
-    name: String,
-    max_players: u64,
-    grid_width: u64,
-    grid_height: u64,
-    ctx: &mut TxContext,
-): (GameSession, World, TurnState) {
-    let world = world::create_world(name, 100, ctx);
-    let turn_state = world::create_turn_state(&world, (max_players as u8), 0, ctx);
+/// Called automatically on contract publish. Creates and shares the World
+/// and all satellite objects. This guarantees exactly one World per game.
+fun init(ctx: &mut TxContext) {
+    let world = world::create_world(
+        string::utf8(b"MyGame"),
+        100,     // max_entities
+        ctx,
+    );
+
+    // Create satellites
+    let grid = world::create_grid(&world, 8, 8, ctx);
+    let turn_state = world::create_turn_state(&world, 2, 0, ctx); // 2 players, simple mode
 
     let session = GameSession {
         id: object::new(ctx),
         state: STATE_LOBBY,
         players: vector::empty(),
-        max_players,
+        max_players: 2,
         winner: option::none(),
     };
 
@@ -127,22 +128,7 @@ public fun create_game(
         creator: tx_context::sender(ctx),
     });
 
-    (session, world, turn_state)
-}
-
-/// Share all game objects after creation (required)
-public entry fun create_and_share(
-    name: String,
-    max_players: u64,
-    grid_width: u64,
-    grid_height: u64,
-    ctx: &mut TxContext,
-) {
-    let (session, world, turn_state) = create_game(
-        name, max_players, grid_width, grid_height, ctx
-    );
-    // Create and share grid
-    let grid = world::create_grid(&world, grid_width, grid_height, ctx);
+    // Share all objects so both players can access them
     world::share_grid(grid);
     world::share(world);
     world::share_turn_state(turn_state);
@@ -242,6 +228,12 @@ fun find_player_index(players: &vector<address>, player: address): u64 {
 
 // === Tests — in a SEPARATE file (sources/game_tests.move) ===
 // See the Test Module Template section below.
+
+// === Test Helper (allows tests to call init) ===
+#[test_only]
+public fun init_for_testing(ctx: &mut TxContext) {
+    init(ctx);
+}
 ```
 
 ---
@@ -270,11 +262,9 @@ fun test_create_and_join_game() {
 
     let mut scenario = test_scenario::begin(admin);
     {
-        // Admin creates game
-        let ctx = test_scenario::ctx(&mut scenario);
-        game::create_and_share(
-            string::utf8(b"Test Game"), 2, 8, 8, ctx
-        );
+        // Deploy — init runs automatically in test_scenario when you call begin
+        // For testing, call init directly:
+        game::init_for_testing(test_scenario::ctx(&mut scenario));
     };
     test_scenario::next_tx(&mut scenario, player1);
     {
