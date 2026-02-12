@@ -5,6 +5,16 @@ Copy this template to start building a new on-chain game.
 > **Transaction flow:** [game_lifecycle.md](./game_lifecycle.md)
 > **Turn management:** [turn_and_win_patterns.md](./turn_and_win_patterns.md)
 
+## Project Structure
+
+```
+my_game/
+  Move.toml
+  sources/
+    game.move          ← game logic only
+    game_tests.move    ← tests only (#[test_only] module)
+```
+
 ---
 
 ## Move.toml
@@ -101,8 +111,8 @@ public fun create_game(
     grid_height: u64,
     ctx: &mut TxContext,
 ): (GameSession, World, TurnState) {
-    let world = world::create_world(name, 1, 100, ctx);
-    let turn_state = world::create_turn_state(&world, max_players, 0, ctx);
+    let world = world::create_world(name, 100, ctx);
+    let turn_state = world::create_turn_state(&world, (max_players as u8), 0, ctx);
 
     let session = GameSession {
         id: object::new(ctx),
@@ -158,8 +168,8 @@ public entry fun join_game(
         world,
         string::utf8(b"Player"),
         0, 0,           // starting position
-        100, 10, 5,     // hp, atk, def
-        3, 1,           // energy, speed
+        100,            // max_hp
+        0,              // team_id
         clock, ctx,
     );
     // Transfer entity to player or share it
@@ -203,7 +213,7 @@ public entry fun take_action(
     // 2. Validate it's this player's turn
     let sender = tx_context::sender(ctx);
     let player_index = find_player_index(&session.players, sender);
-    assert!(turn_sys::is_player_turn(turn_state, player_index), ENotYourTurn);
+    assert!(turn_sys::is_player_turn(turn_state, (player_index as u8)), ENotYourTurn);
 
     // 3. Execute game logic using World wrappers
     // world::move_entity(world, grid, entity, new_x, new_y);
@@ -230,24 +240,39 @@ fun find_player_index(players: &vector<address>, player: address): u64 {
     abort ENotYourTurn
 }
 
-// === Tests ===
+// === Tests — in a SEPARATE file (sources/game_tests.move) ===
+// See the Test Module Template section below.
+```
 
+---
+
+## Test Module Template
+
+Create `sources/game_tests.move`:
+
+```move
 #[test_only]
+module my_game::game_tests;
+
+use std::string;
 use sui::test_scenario;
-#[test_only]
 use sui::clock;
+use my_game::game::{Self, GameSession};
+use world::world::World;
+use systems::grid_sys::Grid;
+use systems::turn_sys::TurnState;
 
 #[test]
 fun test_create_and_join_game() {
     let admin = @0xAD;
-    let player1 = @0xP1;
-    let player2 = @0xP2;
+    let player1 = @0xB1;
+    let player2 = @0xB2;
 
     let mut scenario = test_scenario::begin(admin);
     {
         // Admin creates game
         let ctx = test_scenario::ctx(&mut scenario);
-        create_and_share(
+        game::create_and_share(
             string::utf8(b"Test Game"), 2, 8, 8, ctx
         );
     };
@@ -257,7 +282,7 @@ fun test_create_and_join_game() {
         let mut session = test_scenario::take_shared<GameSession>(&scenario);
         let mut world = test_scenario::take_shared<World>(&scenario);
         let c = clock::create_for_testing(test_scenario::ctx(&mut scenario));
-        join_game(&mut session, &mut world, &c, test_scenario::ctx(&mut scenario));
+        game::join_game(&mut session, &mut world, &c, test_scenario::ctx(&mut scenario));
         test_scenario::return_shared(session);
         test_scenario::return_shared(world);
         clock::destroy_for_testing(c);

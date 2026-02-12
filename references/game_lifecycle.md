@@ -26,6 +26,24 @@ Every arrow is a **separate on-chain transaction** signed by the listed actor.
 
 ---
 
+## World = Game Identity
+
+> [!IMPORTANT]
+> Each game instance has **exactly one World**. The World object ID is the **canonical identifier** of that game.
+
+All other objects created during `create_game()` are **satellites** of the World:
+
+| Object | Relationship to World |
+|--------|----------------------|
+| **Grid** | The World's spatial board — created via `world::create_grid(&world, ...)` |
+| **TurnState** | The World's turn tracker — created via `world::create_turn_state(&world, ...)` |
+| **GameSession** | The game contract's custom state container — exists alongside the World |
+| **Entities** | Spawned through the World — `world::spawn_*(&mut world, ...)` |
+
+When referencing a game externally (events, frontend, API), use the **World's object ID** as the primary key.
+
+---
+
 ## Shared vs Owned Objects
 
 | Object | Ownership | Why | Who Accesses |

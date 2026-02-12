@@ -10,19 +10,19 @@ Complete API for the `world::world` module — the single entry point for all ga
 
 ```move
 // Create a new game world
-public fun create_world(name: String, version: u64, max_entities: u64, ctx: &mut TxContext): World
+public fun create_world(name: String, max_entities: u64, ctx: &mut TxContext): World
 
 // Share world as a shared object (required after creation)
 public fun share(world: World)
 
-// Pause all state-changing operations
-public entry fun pause(world: &mut World, ctx: &TxContext)
+// Pause all state-changing operations (creator only)
+public fun pause(world: &mut World, ctx: &TxContext)
 
-// Resume operations
-public entry fun resume(world: &mut World, ctx: &TxContext)
+// Resume operations (creator only)
+public fun resume(world: &mut World, ctx: &TxContext)
 
-// Destroy world (must have 0 entities)
-public fun destroy(world: World)
+// Destroy world (creator only)
+public fun destroy(world: World, ctx: &TxContext)
 ```
 
 ### Getters
@@ -40,23 +40,23 @@ public fun max_entities(world: &World): u64
 ## Spawn System
 
 ```move
-// Spawn a player entity with Position, Health, Attack, Defense, Energy, Identity
+// Spawn a player entity with Position, Health, Team, Identity
 public fun spawn_player(
     world: &mut World, name: String, x: u64, y: u64,
-    hp: u64, atk: u64, def: u64, energy: u64, spd: u64,
+    max_hp: u64, team_id: u8,
     clock: &Clock, ctx: &mut TxContext
 ): Entity
 
-// Spawn NPC with Position, Health, Attack, Defense, Stats
+// Spawn NPC with Position, Health, Attack
 public fun spawn_npc(
     world: &mut World, name: String, x: u64, y: u64,
-    hp: u64, atk: u64, def: u64, level: u64,
+    max_hp: u64, atk_damage: u64, atk_range: u8,
     clock: &Clock, ctx: &mut TxContext
 ): Entity
 
 // Spawn a grid tile with Position, Marker
 public fun spawn_tile(
-    world: &mut World, x: u64, y: u64, tile_type: u8,
+    world: &mut World, x: u64, y: u64, symbol: u8,
     clock: &Clock, ctx: &mut TxContext
 ): Entity
 ```
@@ -66,17 +66,17 @@ public fun spawn_tile(
 ## Grid System
 
 ```move
-// Create a new grid with dimensions
-public fun create_grid(world: &mut World, width: u64, height: u64, ctx: &mut TxContext): Grid
+// Create a new grid with dimensions (immutable reference to world)
+public fun create_grid(world: &World, width: u64, height: u64, ctx: &mut TxContext): Grid
 
 // Share grid as shared object (required after creation)
 public fun share_grid(grid: Grid)
 
-// Place entity at position on grid
-public fun place(world: &mut World, grid: &mut Grid, entity: &Entity, x: u64, y: u64)
+// Place entity at position on grid (takes entity ID, not reference)
+public fun place(world: &World, grid: &mut Grid, entity_id: ID, x: u64, y: u64)
 
-// Remove entity from grid
-public fun remove_from_grid(world: &mut World, grid: &mut Grid, entity: &Entity)
+// Remove entity from grid at coordinates (returns removed entity ID)
+public fun remove_from_grid(world: &World, grid: &mut Grid, x: u64, y: u64): ID
 ```
 
 ### Grid Queries (read-only, import from `systems::grid_sys`)
@@ -86,6 +86,9 @@ grid_sys::is_occupied(grid: &Grid, x: u64, y: u64): bool
 grid_sys::get_entity_at(grid: &Grid, x: u64, y: u64): Option<ID>
 grid_sys::in_bounds(grid: &Grid, x: u64, y: u64): bool
 grid_sys::is_full(grid: &Grid): bool
+grid_sys::width(grid: &Grid): u64
+grid_sys::height(grid: &Grid): u64
+grid_sys::occupied_count(grid: &Grid): u64
 ```
 
 ---
@@ -93,10 +96,10 @@ grid_sys::is_full(grid: &Grid): bool
 ## Movement System
 
 ```move
-// Move entity to new position (validates bounds, occupancy, speed)
+// Move entity to new position (note: entity before grid in param order)
 public fun move_entity(
-    world: &mut World, grid: &mut Grid, entity: &mut Entity,
-    new_x: u64, new_y: u64
+    world: &World, entity: &mut Entity, grid: &mut Grid,
+    to_x: u64, to_y: u64
 )
 ```
 
@@ -107,8 +110,7 @@ public fun move_entity(
 ```move
 // Swap positions of two entities atomically
 public fun swap(
-    world: &mut World, grid: &mut Grid,
-    entity_a: &mut Entity, entity_b: &mut Entity
+    world: &World, e1: &mut Entity, e2: &mut Entity, grid: &mut Grid
 )
 ```
 
@@ -119,8 +121,7 @@ public fun swap(
 ```move
 // Capture and remove an adjacent enemy entity from grid
 public fun capture(
-    world: &mut World, grid: &mut Grid,
-    attacker: &Entity, target: &mut Entity
+    world: &World, capturer: &Entity, target: &Entity, grid: &mut Grid
 )
 ```
 
@@ -129,11 +130,10 @@ public fun capture(
 ## Combat System
 
 ```move
-// Attack target: range check → defense reduction → HP damage → death event
+// Attack target: defense reduction → HP damage → death event. Returns actual damage dealt.
 public fun attack(
-    world: &mut World, grid: &Grid,
-    attacker: &Entity, defender: &mut Entity
-)
+    world: &World, attacker: &Entity, defender: &mut Entity
+): u64
 ```
 
 ---
@@ -141,27 +141,29 @@ public fun attack(
 ## Turn System
 
 ```move
-// Create turn state for the game
+// Create turn state for the game (immutable world ref, u8 player_count)
 public fun create_turn_state(
-    world: &mut World, num_players: u64, mode: u8, ctx: &mut TxContext
+    world: &World, player_count: u8, mode: u8, ctx: &mut TxContext
 ): TurnState
 
 // Share turn state (required after creation)
 public fun share_turn_state(turn_state: TurnState)
 
 // End current player's turn, advance to next player
-public fun end_turn(world: &mut World, state: &mut TurnState)
+public fun end_turn(world: &World, state: &mut TurnState)
 
 // Advance to next phase within a turn (for phase mode)
-public fun advance_phase(world: &mut World, state: &mut TurnState)
+public fun advance_phase(world: &World, state: &mut TurnState)
 ```
 
 ### Turn Queries (read-only, import from `systems::turn_sys`)
 ```move
-turn_sys::current_player(state: &TurnState): u64
-turn_sys::current_phase(state: &TurnState): u8
-turn_sys::is_player_turn(state: &TurnState, player_index: u64): bool
+turn_sys::current_player(state: &TurnState): u8
+turn_sys::is_player_turn(state: &TurnState, player_index: u8): bool
 turn_sys::turn_number(state: &TurnState): u64
+turn_sys::player_count(state: &TurnState): u8
+turn_sys::phase(state: &TurnState): u8
+turn_sys::mode(state: &TurnState): u8
 ```
 
 ### Turn Constants
@@ -182,15 +184,15 @@ const PHASE_END: u8 = 3;
 ```move
 // Apply a status effect (poison, shield, stun, regen, etc.)
 public fun apply_effect(
-    world: &mut World, entity: &mut Entity,
-    effect_type: u8, magnitude: u64, duration: u64
+    world: &World, entity: &mut Entity,
+    effect_type: u8, stacks: u64, duration: u8
 )
 
-// Process all effects: tick damage/healing, reduce durations
-public fun tick_effects(world: &mut World, entity: &mut Entity)
+// Process all effects: tick damage/healing, reduce durations. Returns total damage dealt.
+public fun tick_effects(world: &World, entity: &mut Entity): u64
 
-// Remove effects with 0 remaining duration
-public fun remove_expired(world: &mut World, entity: &mut Entity)
+// Remove effects with 0 remaining duration. Returns true if an effect was removed.
+public fun remove_expired(world: &World, entity: &mut Entity): bool
 ```
 
 ### Effect Constants
@@ -209,16 +211,13 @@ const EFFECT_WEAKNESS: u8 = 5;   // -ATK
 
 ```move
 // Spend energy (asserts has enough)
-public fun spend_energy(world: &mut World, entity: &mut Entity, amount: u64)
+public fun spend_energy(world: &World, entity: &mut Entity, cost: u8)
 
 // Regenerate energy (up to max)
-public fun regenerate_energy(world: &mut World, entity: &mut Entity, amount: u64)
-```
+public fun regenerate_energy(world: &World, entity: &mut Entity)
 
-### Energy Queries (read-only, from `systems::energy_sys`)
-```move
-energy_sys::has_enough_energy(entity: &Entity, amount: u64): bool
-energy_sys::current_energy(entity: &Entity): u64
+// Check if entity has enough energy
+public fun has_enough_energy(world: &World, entity: &Entity, cost: u8): bool
 ```
 
 ---
@@ -226,17 +225,17 @@ energy_sys::current_energy(entity: &Entity): u64
 ## Card System
 
 ```move
-// Draw N cards from draw pile to hand
-public fun draw_cards(world: &mut World, entity: &mut Entity, count: u64, rng: &mut RandomGenerator)
+// Draw N cards from draw pile to hand. Returns number drawn.
+public fun draw_cards(world: &World, entity: &mut Entity, count: u64): u64
 
-// Play card from hand (costs energy)
-public fun play_card(world: &mut World, entity: &mut Entity, card_index: u64)
+// Play card from hand (costs energy). Returns the played CardData.
+public fun play_card(world: &World, entity: &mut Entity, hand_index: u64): CardData
 
 // Discard card from hand to discard pile
-public fun discard_card(world: &mut World, entity: &mut Entity, card_index: u64)
+public fun discard_card(world: &World, entity: &mut Entity, hand_index: u64)
 
 // Shuffle discard pile into draw pile
-public fun shuffle_deck(world: &mut World, entity: &mut Entity, rng: &mut RandomGenerator)
+public fun shuffle_deck(world: &World, entity: &mut Entity, r: &Random, ctx: &mut TxContext)
 ```
 
 ---
@@ -244,11 +243,11 @@ public fun shuffle_deck(world: &mut World, entity: &mut Entity, rng: &mut Random
 ## Encounter System
 
 ```move
-// Generate a scaled encounter based on floor level
+// Generate a scaled encounter based on floor level. Returns vector of enemy entities.
 public fun generate_encounter(
-    world: &mut World, floor: u64, encounter_type: u8,
+    world: &mut World, floor: u8, enemy_count: u64,
     clock: &Clock, ctx: &mut TxContext
-): Entity
+): vector<Entity>
 ```
 
 ---
@@ -257,13 +256,13 @@ public fun generate_encounter(
 
 ```move
 // Grant gold to entity
-public fun grant_gold(world: &mut World, entity: &mut Entity, amount: u64)
+public fun grant_gold(world: &World, entity: &mut Entity, amount: u64)
 
 // Grant a card reward
-public fun grant_card(world: &mut World, entity: &mut Entity, card_id: u64, card_type: u8)
+public fun grant_card(world: &World, entity: &mut Entity, card: CardData)
 
 // Grant a relic reward
-public fun grant_relic(world: &mut World, entity: &mut Entity, relic_id: u64, relic_type: u8)
+public fun grant_relic(world: &World, entity: &mut Entity, relic_type: u8, modifier_value: u64)
 ```
 
 ---
@@ -272,13 +271,13 @@ public fun grant_relic(world: &mut World, entity: &mut Entity, relic_id: u64, re
 
 ```move
 // Buy a card (spend gold, add to deck)
-public fun buy_card(world: &mut World, entity: &mut Entity, card_id: u64, cost: u64)
+public fun buy_card(world: &World, entity: &mut Entity, card: CardData, cost: u64)
 
 // Buy a relic (spend gold, add to inventory)
-public fun buy_relic(world: &mut World, entity: &mut Entity, relic_id: u64, cost: u64)
+public fun buy_relic(world: &World, entity: &mut Entity, relic_type: u8, modifier_value: u64, cost: u64)
 
 // Remove a card from deck (costs gold)
-public fun remove_card(world: &mut World, entity: &mut Entity, card_index: u64, cost: u64)
+public fun remove_card(world: &World, entity: &mut Entity, draw_pile_index: u64, cost: u64)
 ```
 
 ---
@@ -287,16 +286,16 @@ public fun remove_card(world: &mut World, entity: &mut Entity, card_index: u64, 
 
 ```move
 // Choose a path node on the current floor
-public fun choose_path(world: &mut World, entity: &mut Entity, node_index: u64)
+public fun choose_path(world: &World, entity: &mut Entity, node: u8)
 
 // Advance to the next floor
-public fun advance_floor(world: &mut World, entity: &mut Entity)
+public fun advance_floor(world: &World, entity: &mut Entity)
 ```
 
-### Map Queries (read-only, from `systems::map_sys`)
+### Map Queries (read-only)
 ```move
-map_sys::current_floor(entity: &Entity): u64
-map_sys::current_node(entity: &Entity): u64
+public fun current_floor(entity: &Entity): u8
+public fun current_node(entity: &Entity): u8
 ```
 
 ---
@@ -305,13 +304,13 @@ map_sys::current_node(entity: &Entity): u64
 
 ```move
 // Add relic to entity's inventory
-public fun add_relic(world: &mut World, entity: &mut Entity, relic_id: u64, relic_type: u8)
+public fun add_relic(world: &World, entity: &mut Entity, relic_type: u8, modifier_type: u8, modifier_value: u64)
 
-// Apply relic bonus (returns modified value)
-public fun apply_relic_bonus(world: &mut World, entity: &Entity, base_value: u64): u64
+// Apply relic passive bonus. Returns bonus value.
+public fun apply_relic_bonus(world: &World, entity: &mut Entity): u64
 
 // Remove relic from inventory
-public fun remove_relic(world: &mut World, entity: &mut Entity, relic_id: u64)
+public fun remove_relic(world: &World, entity: &mut Entity)
 ```
 
 ---
@@ -320,13 +319,13 @@ public fun remove_relic(world: &mut World, entity: &mut Entity, relic_id: u64)
 
 ```move
 // Pick up an objective (e.g., flag)
-public fun pick_up(world: &mut World, entity: &mut Entity, objective: &mut Entity)
+public fun pick_up(world: &World, carrier: &mut Entity, flag_entity: &mut Entity)
 
 // Drop objective (e.g., on death)
-public fun drop_flag(world: &mut World, entity: &mut Entity, objective: &mut Entity)
+public fun drop_flag(world: &World, carrier: &mut Entity, flag_entity: &mut Entity)
 
 // Score a point with the objective
-public fun score(world: &mut World, entity: &mut Entity, objective: &mut Entity)
+public fun score(world: &World, carrier: &mut Entity, flag_entity: &mut Entity, team: u8)
 ```
 
 ---
@@ -334,14 +333,14 @@ public fun score(world: &mut World, entity: &mut Entity, objective: &mut Entity)
 ## Territory System
 
 ```move
-// Claim a zone instantly
-public fun claim(world: &mut World, zone: &mut Entity, team: u8)
+// Claim a zone
+public fun claim(world: &World, entity: &Entity, zone_entity: &mut Entity)
 
-// Start contesting a zone (progressive capture)
-public fun contest(world: &mut World, zone: &mut Entity, team: u8)
+// Contest a zone (progressive capture)
+public fun contest(world: &World, entity: &Entity, zone_entity: &mut Entity, amount: u64)
 
-// Capture zone after contest progress reaches threshold
-public fun capture_zone(world: &mut World, zone: &mut Entity)
+// Capture zone for a team
+public fun capture_zone(world: &World, zone_entity: &mut Entity, team: u8)
 ```
 
 ---
@@ -349,11 +348,11 @@ public fun capture_zone(world: &mut World, zone: &mut Entity)
 ## Win Condition System
 
 ```move
-// Check if entity is eliminated (HP == 0)
-public fun check_elimination(world: &mut World, entity: &Entity): bool
+// Check if entity is eliminated (HP == 0) — no pause check (read-only)
+public fun check_elimination(entity: &Entity): bool
 
 // Declare winner with condition type
-public fun declare_winner(world: &mut World, winner: address, condition: u8)
+public fun declare_winner(world: &World, winner_id: ID, condition: u8, clock: &Clock)
 ```
 
 ### Win Condition Constants
@@ -368,10 +367,30 @@ const WIN_CUSTOM: u8 = 5;         // Game-specific condition
 
 ---
 
+## Re-exported Constants
+
+```move
+// Access via world:: instead of importing systems directly
+world::mode_simple()     // TURN_MODE_SIMPLE
+world::mode_phase()      // TURN_MODE_PHASES
+world::phase_draw()      // PHASE_DRAW
+world::phase_play()      // PHASE_PLAY
+world::phase_combat()    // PHASE_COMBAT
+world::phase_end()       // PHASE_END
+world::condition_elimination()
+world::condition_board_full()
+world::condition_objective()
+world::condition_surrender()
+world::condition_timeout()
+world::condition_custom()
+```
+
+---
+
 ## Errors
 
 ```move
 const EWorldPaused: u64 = 0;      // World is paused
-const ENotCreator: u64 = 1;       // Caller is not world creator
-const EMaxEntities: u64 = 2;      // Entity limit reached
+const EMaxEntities: u64 = 1;      // Entity limit reached
+const ENotCreator: u64 = 2;       // Caller is not world creator
 ```

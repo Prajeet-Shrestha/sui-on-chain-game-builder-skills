@@ -72,7 +72,7 @@ public struct World has key {
 | Function | Delegates To | Notes |
 |----------|-------------|-------|
 | `spawn_player(world, name, x, y, max_hp, team_id, &Clock, ctx): Entity` | `spawn_sys::spawn_player` | +1 entity_count |
-| `spawn_npc(world, name, x, y, max_hp, atk_dmg, team_id, &Clock, ctx): Entity` | `spawn_sys::spawn_npc` | +1 entity_count |
+| `spawn_npc(world, name, x, y, max_hp, atk_damage, atk_range, &Clock, ctx): Entity` | `spawn_sys::spawn_npc` | +1 entity_count |
 | `spawn_tile(world, x, y, symbol, &Clock, ctx): Entity` | `spawn_sys::spawn_tile` | +1 entity_count |
 | `generate_encounter(world, floor, enemy_count, &Clock, ctx): vector<Entity>` | `encounter_sys::generate_encounter` | +N entity_count |
 

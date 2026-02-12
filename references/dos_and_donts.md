@@ -20,6 +20,8 @@ Rules to avoid common mistakes when building on-chain games with the engine.
 | 10 | **Use `public fun`** for composable game logic | Use `entry fun` for functions you want to compose via PTBs | `entry fun` cannot be called from other Move functions or PTBs. Use `public fun` for composability, `entry fun` only for top-level transaction endpoints. |
 | 11 | **Test with `#[test]` + `test_scenario`** | Skip testing "simple" systems | Subtle bugs in state machines and turn logic are common. Always test. |
 | 12 | **Use the 🥇 dynamic field shortcut** for simple custom data | Create a full component module for a single counter or flag | Over-engineering wastes time. See [custom_components.md](./custom_components.md) for the 3-tier approach. |
+| 13 | **Treat World as the game's sole identifier** — Grid, TurnState, GameSession are satellites of the one World | Create multiple Worlds per game, or treat Grid/TurnState as independent objects | Each game = one World. World ID is the canonical game identifier. |
+| 14 | **Put tests in a separate `_tests.move` file** (e.g., `game_tests.move`) | Embed `#[test]` functions at the bottom of the game module | Keeps game logic clean, makes tests easier to find, and avoids bloating the contract file. |
 
 ---
 

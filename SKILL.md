@@ -17,8 +17,14 @@ description: Build fully on-chain games by composing the ECS game engine's syste
 > - **World** = the facade that ties it all together (pause control, entity counting)
 > - **Your game contract** = entry points that call World functions in the right sequence
 >
+> **Each game instance has exactly one World.** The World is the **sole identifier** of that game.
+> Grid, TurnState, and GameSession are all satellites of the one World.
+> When referencing a game externally, use the World's object ID.
+>
 > **Never** reimplement health tracking, grid management, damage calculation, or any other engine primitive.
 > **Always** reach for the existing system first.
+>
+> **Always** put tests in a separate `_tests.move` file — never mix test code into the game module.
 
 ---
 

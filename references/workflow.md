@@ -56,12 +56,20 @@ Systems:    grid_sys, spawn_sys, turn_sys, win_condition_sys
 **Do:**
 1. Create `Move.toml` with `world` git dependency (see [game_template.md](./game_template.md) for the exact `Move.toml`)
 2. If the game needs direct access to `entity`, `components`, or `systems` types, add those git dependencies too
-3. Create module file: `sources/game.move`
-4. Copy the module skeleton from the template
-5. Define error constants
-6. Define game state constants
+3. Create module file: `sources/game.move` — game logic only, no tests
+4. Create test file: `sources/game_tests.move` — all tests go here (`#[test_only]` module)
+5. Copy the module skeleton from the template
+6. Define error constants
+7. Define game state constants
 
-**Output:** A compilable (but empty) module.
+**Project structure:**
+```
+sources/
+  game.move          ← game logic only
+  game_tests.move    ← tests only (#[test_only] module)
+```
+
+**Output:** A compilable (but empty) module with a separate test file.
 
 ---
 
@@ -126,9 +134,10 @@ Systems:    grid_sys, spawn_sys, turn_sys, win_condition_sys
 **Action:** Write tests and verify the build.
 
 **Do:**
-1. Write `#[test]` functions using `test_scenario`
-2. Test the full game loop: create → join → play → win
-3. Test edge cases: wrong turn, invalid move, game full
+1. Write all `#[test]` functions in `sources/game_tests.move` (NOT in `game.move`)
+2. Use `#[test_only] module my_game::game_tests;` as the module declaration
+3. Test the full game loop: create → join → play → win
+4. Test edge cases: wrong turn, invalid move, game full
 
 **Run:**
 ```bash
