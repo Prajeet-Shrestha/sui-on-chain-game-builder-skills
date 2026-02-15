@@ -149,13 +149,80 @@ sui move test
 
 ---
 
-## Step 9: Deploy (if requested)
+## Step 9: Deploy
 
-**Action:** Publish to testnet or mainnet.
+**Action:** Once the game contract builds and all tests pass, ask the user if they'd like to deploy to **devnet**, **testnet**, or **mainnet**.
 
-**Run:**
-```bash
-sui client publish --gas-budget 100000000
+> [!IMPORTANT]
+> Deployment requires the Sui CLI installed and a funded wallet. The deployer wallet is imported from a **mnemonic** in the `.env` file.
+
+### 9.1 — Environment Setup
+
+Ask the user to create a `.env` file in their game project root (or reuse an existing one):
+
+```env
+# Network to deploy to: devnet | testnet | mainnet
+SUI_NETWORK=testnet
+
+# Deployer wallet mnemonic (space-separated 12/24 words)
+MNEMONIC="your twelve word mnemonic phrase goes here replace with actual words"
 ```
 
-**Output:** Package ID and shared object IDs for the game.
+> [!CAUTION]
+> **Never commit the `.env` file.** Make sure `.env` is in `.gitignore`. The mnemonic controls the deployer wallet—treat it like a private key.
+
+> [!TIP]
+> If the user doesn't have a wallet mnemonic yet, they can generate one with:
+> ```bash
+> sui client new-address ed25519 --json
+> ```
+> Then fund it from the [Sui Faucet](https://faucet.sui.io/) (devnet/testnet only). For mainnet, the wallet needs real SUI tokens.
+
+### 9.2 — Deploy the Game Contract
+
+Run the following commands to import the wallet, switch to the target network, and publish:
+
+```bash
+# Load .env
+set -a && source .env && set +a
+
+# Import deployer wallet (idempotent — safe to run multiple times)
+sui keytool import "$MNEMONIC" ed25519 --json 2>/dev/null || true
+
+# Switch to selected network (creates env if it doesn't exist)
+sui client switch --env "$SUI_NETWORK" 2>/dev/null || {
+  sui client new-env --alias "$SUI_NETWORK" --rpc "https://fullnode.${SUI_NETWORK}.sui.io:443"
+  sui client switch --env "$SUI_NETWORK"
+}
+
+# Publish the game contract
+sui client publish --gas-budget 500000000 --skip-dependency-verification --json
+```
+
+### 9.3 — Extract Results
+
+From the publish output JSON, extract:
+- **Package ID** — from `objectChanges[].packageId` where `type == "published"`
+- **Shared Object IDs** — from `objectChanges[]` where `type == "created"` and `objectType` contains your game types (World, Grid, GameSession, TurnState)
+
+Report these to the user:
+```
+✅ Game deployed successfully!
+
+  Package ID:    0x...
+  World:         0x...
+  Grid:          0x...
+  GameSession:   0x...
+  TurnState:     0x...
+
+  Network: testnet
+```
+
+> [!NOTE]
+> The engine packages (`entity`, `components`, `systems`, `world`) are already published and referenced as git dependencies — only the game contract itself needs to be deployed. See `engine/deploy.sh` for reference on the full engine deployment flow.
+
+---
+
+## Step 10: Build Frontend (Optional)
+
+→ Read [vite-react-game-frontend/SKILL.md](../../vite-react-game-frontend/SKILL.md)

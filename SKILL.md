@@ -162,3 +162,4 @@ For exact function signatures and implementation details, see:
 4. Read the relevant pattern files for your game mechanics
 5. Check [dos_and_donts.md](./references/dos_and_donts.md) before finalizing
 6. Build and test: `sui move build && sui move test`
+7. Ask the user if they want to deploy — see Step 9 in [workflow.md](./references/workflow.md)
