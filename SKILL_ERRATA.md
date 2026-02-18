@@ -99,3 +99,18 @@ When fixing the skill docs, check each item off.
 - **Fix**: Update import examples in skill docs to use module-only imports: `use components::team;` instead of `use components::team::{Self, Team};`.
 - **Discovered**: 2026-02-17, second developer build
 - **Status**: ✅ Fixed
+
+---
+
+## 9. Engine uses `std::ascii::String`, not `std::string::String`
+
+- **Files**: [game_template.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/references/game_template.md), [world_api.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/references/world_api.md), [world.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/engine-reference/world.md), [dos_and_donts.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/references/dos_and_donts.md)
+- **What the docs say**: `use std::string::{Self, String}` and `string::utf8(b"MyGame")` for the `name` parameter
+- **What the engine actually has**: `use std::ascii::String` — all `name` parameters (`create_world`, `spawn_player`, `spawn_npc`) expect `std::ascii::String`
+- **Impact**: `error[E04007]: incompatible types` on every `create_world` / `spawn_player` / `spawn_npc` call because `string::utf8()` returns `std::string::String`, not `std::ascii::String`.
+- **Fix**: In `game_template.md` change:
+  - Import: `use std::ascii;` instead of `use std::string::{Self, String};`
+  - Calls: `ascii::string(b"MyGame")` instead of `string::utf8(b"MyGame")`
+  - Similarly for `spawn_player` name parameter
+- **Discovered**: 2026-02-18, TicTacToe game build
+- **Status**: [ ] Not yet fixed
