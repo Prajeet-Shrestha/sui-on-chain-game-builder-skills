@@ -49,7 +49,7 @@ my_game = "0x0"
 module my_game::game;
 
 // === Imports ===
-use std::string::{Self, String};
+use std::ascii;
 use sui::clock::Clock;
 use sui::event;
 use sui::tx_context;
@@ -102,18 +102,15 @@ public struct GameOver has copy, drop {
 
 // === Setup — World created in init (exactly one per deployment) ===
 
-/// Called automatically on contract publish. Creates and shares the World
-/// and all satellite objects. This guarantees exactly one World per game.
+/// Called automatically on contract publish. Creates and shares the World.
+/// NOTE: init() cannot accept shared objects like Clock, so Grid/TurnState/
+/// entity spawning must happen in a separate setup function.
 fun init(ctx: &mut TxContext) {
     let world = world::create_world(
-        string::utf8(b"MyGame"),
+        ascii::string(b"MyGame"),
         100,     // max_entities
         ctx,
     );
-
-    // Create satellites
-    let grid = world::create_grid(&world, 8, 8, ctx);
-    let turn_state = world::create_turn_state(&world, 2, 0, ctx); // 2 players, simple mode
 
     let session = GameSession {
         id: object::new(ctx),
@@ -128,11 +125,22 @@ fun init(ctx: &mut TxContext) {
         creator: tx_context::sender(ctx),
     });
 
-    // Share all objects so both players can access them
-    world::share_grid(grid);
     world::share(world);
-    world::share_turn_state(turn_state);
     transfer::share_object(session);
+}
+
+/// Called once after deploy to set up the board. Separate from init()
+/// because spawn functions require &Clock (a shared object).
+public entry fun setup_board(
+    world: &mut World,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    let grid = world::create_grid(world, 8, 8, ctx);
+    let turn_state = world::create_turn_state(world, 2, 0, ctx); // 2 players, simple mode
+
+    world::share_grid(grid);
+    world::share_turn_state(turn_state);
 }
 
 /// Player joins the game
@@ -152,14 +160,14 @@ public entry fun join_game(
     // Spawn player entity — customize parameters as needed
     let entity = world::spawn_player(
         world,
-        string::utf8(b"Player"),
+        ascii::string(b"Player"),
         0, 0,           // starting position
         100,            // max_hp
         0,              // team_id
         clock, ctx,
     );
-    // Transfer entity to player or share it
-    transfer::public_transfer(entity, player);
+    // Entity has `key` only (no `store`) — use entity::share(), NOT transfer
+    entity::share(entity);
 
     event::emit(PlayerJoined {
         game_id: object::id(session),
@@ -186,7 +194,7 @@ public entry fun start_game(
 /// Template for a player action
 public entry fun take_action(
     session: &GameSession,
-    world: &mut World,
+    world: &World,              // &World for action functions (not &mut)
     turn_state: &mut TurnState,
     grid: &mut Grid,
     entity: &mut Entity,
@@ -202,8 +210,8 @@ public entry fun take_action(
     assert!(turn_sys::is_player_turn(turn_state, (player_index as u8)), ENotYourTurn);
 
     // 3. Execute game logic using World wrappers
-    // world::move_entity(world, grid, entity, new_x, new_y);
-    // world::attack(world, grid, entity, target);
+    // world::move_entity(world, entity, grid, new_x, new_y);
+    // world::attack(world, entity, target);
 
     // 4. Check win condition
     // if world::check_elimination(world, target) { ... }
@@ -246,7 +254,7 @@ Create `sources/game_tests.move`:
 #[test_only]
 module my_game::game_tests;
 
-use std::string;
+use std::ascii;
 use sui::test_scenario;
 use sui::clock;
 use my_game::game::{Self, GameSession};

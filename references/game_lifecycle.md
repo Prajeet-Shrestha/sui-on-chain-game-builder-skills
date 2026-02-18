@@ -67,13 +67,12 @@ When referencing a game externally (events, frontend, API), use the **World's ob
 **Recommendation:** For PvP games, make player entities **shared** so opponents can target them with attacks. For single-player, keep them **owned**.
 
 ```move
-// Owned — transfer to player
-let entity = world::spawn_player(world, ...);
-transfer::public_transfer(entity, player_address);
+// Owned — not possible with Entity (Entity has `key` only, no `store`)
+// transfer::public_transfer(entity, player_address);  // ❌ won't compile
 
-// Shared — anyone can interact
+// Shared — use entity::share() (all entities must be shared)
 let entity = world::spawn_player(world, ...);
-transfer::public_share_object(entity);
+entity::share(entity);  // ✅ correct
 ```
 
 ---
@@ -102,19 +101,19 @@ For functions to be composable in PTBs, use `public fun` (not `entry fun`):
 ```move
 // ✅ Composable — can be batched in PTB
 public fun move_and_attack(
-    world: &mut World,
+    world: &World,
     grid: &mut Grid,
     entity: &mut Entity,
     target: &mut Entity,
     new_x: u64, new_y: u64,
 ) {
-    world::move_entity(world, grid, entity, new_x, new_y);
-    world::attack(world, grid, entity, target);
+    world::move_entity(world, entity, grid, new_x, new_y);
+    world::attack(world, entity, target);
 }
 
 // Also provide an entry point for simple single-action calls
 public entry fun move_and_attack_entry(
-    world: &mut World, grid: &mut Grid,
+    world: &World, grid: &mut Grid,
     entity: &mut Entity, target: &mut Entity,
     new_x: u64, new_y: u64,
 ) {

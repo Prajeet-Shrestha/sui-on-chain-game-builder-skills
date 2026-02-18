@@ -104,7 +104,7 @@ When fixing the skill docs, check each item off.
 
 ## 9. Engine uses `std::ascii::String`, not `std::string::String`
 
-- **Files**: [game_template.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/references/game_template.md), [world_api.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/references/world_api.md), [world.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/engine-reference/world.md), [dos_and_donts.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/references/dos_and_donts.md)
+- **Files**: [game_template.md](file:///Users/ps/Documents/ibriz/git/game-engine/.agent/skills/on_chain_game_skills/references/game_template.md), [custom_components.md](file:///Users/ps/Documents/ibriz/git/game-engine/.agent/skills/on_chain_game_skills/references/custom_components.md), [game_lifecycle.md](file:///Users/ps/Documents/ibriz/git/game-engine/.agent/skills/on_chain_game_skills/references/game_lifecycle.md)
 - **What the docs say**: `use std::string::{Self, String}` and `string::utf8(b"MyGame")` for the `name` parameter
 - **What the engine actually has**: `use std::ascii::String` — all `name` parameters (`create_world`, `spawn_player`, `spawn_npc`) expect `std::ascii::String`
 - **Impact**: `error[E04007]: incompatible types` on every `create_world` / `spawn_player` / `spawn_npc` call because `string::utf8()` returns `std::string::String`, not `std::ascii::String`.
@@ -113,4 +113,4 @@ When fixing the skill docs, check each item off.
   - Calls: `ascii::string(b"MyGame")` instead of `string::utf8(b"MyGame")`
   - Similarly for `spawn_player` name parameter
 - **Discovered**: 2026-02-18, TicTacToe game build
-- **Status**: [ ] Not yet fixed
+- **Status**: ✅ Fixed

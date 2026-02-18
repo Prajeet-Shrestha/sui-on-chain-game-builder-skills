@@ -66,7 +66,7 @@ When you need a structured, multi-field data container reused across many entiti
 module my_game::mana;
 
 use std::ascii;
-use std::string::String;
+use std::ascii::String;
 use entity::entity::Entity;
 use sui::dynamic_field;
 
