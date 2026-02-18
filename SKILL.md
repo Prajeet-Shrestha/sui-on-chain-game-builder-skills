@@ -5,6 +5,16 @@ description: Build fully on-chain games by composing the ECS game engine's syste
 
 # On-Chain Game Builder
 
+> **⛔ PREFLIGHT — ABORT IF MISSING**
+>
+> Before doing **anything else**, check if `../game-design-theory/SKILL.md` exists.
+>
+> - **If it exists:** Read it and apply it during Step 0-A (game ideation).
+> - **If it does NOT exist:** **ABORT. Do NOT proceed.** Tell the user:
+>   *"The game-design-theory skill is not installed at `.agent/skills/game-design-theory/`. Without it, the game mechanics and loop you create may be incomplete or lack proper engagement design. Please install it before proceeding, or explicitly confirm you want to skip game design ideation."*
+>
+> **Do NOT silently skip this check. Do NOT proceed to Rule Zero, planning, or any other step until this is resolved.**
+
 > **⚠️ RULE ZERO — Read this before anything else.**
 >
 > **You are NOT writing game logic from scratch.**
@@ -127,6 +137,35 @@ Level up if: Health.current <= 10% of Health.max
 
 > [!TIP]
 > **Always present both options** — the adapted turn-based version AND the web game alternative. Let the user decide which direction to go.
+
+### 0-C: Present the Implementation Plan
+
+> [!IMPORTANT]
+> **Once ideation and validation are complete, you MUST present a structured Implementation Plan to the user before writing any code.** Do not skip this step. Wait for user approval before proceeding.
+
+The implementation plan is a document that summarises everything decided during ideation and maps it to concrete engine work. It **must** contain the following four sections (you may add more as needed):
+
+#### Mandatory Sections
+
+| # | Section | What to include |
+|---|---------|----------------|
+| 1 | **Game Overview** | One-paragraph elevator pitch, genre, theme, target player type, target aesthetic (from MDA), and core fantasy |
+| 2 | **User Flow** | Step-by-step journey from session creation to game-over — include every screen/state the player sees and the transitions between them (a mermaid diagram is encouraged) |
+| 3 | **Game Mechanics List** | Enumerated list of every mechanic (e.g. "Move unit on grid", "Draw card from deck", "Apply poison debuff"). For each mechanic state: the trigger, the engine system/component used, and the outcome |
+| 4 | **Engine Fit Validation** | Summary of the Step 0-B checklist results — confirm the game passes all five questions, or note any adaptations made |
+
+#### Optional Sections (add when relevant)
+
+- **Component & System Mapping** — table of engine components/systems the game will use and why
+- **Custom Components** — any dynamic fields or custom structs not provided by the engine
+- **Turn Structure** — detailed breakdown of what happens each turn (phases, action limits, end-turn triggers)
+- **Win / Loss Conditions** — exact conditions and which engine primitives enforce them
+- **Multiplayer Design** — session flow, player count, PvP vs co-op, spectator support
+- **Progression / Meta-game** — levels, unlocks, leaderboards, persistent state across sessions
+- **Risk & Open Questions** — anything unresolved or requiring user input
+
+> [!CAUTION]
+> **Do NOT proceed to Step 1 (coding) until the user has reviewed and approved the implementation plan.** If the user requests changes, update the plan and re-present it.
 
 ---
 
