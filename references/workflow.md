@@ -225,4 +225,4 @@ Report these to the user:
 
 ## Step 10: Build Frontend (Optional)
 
-→ Read [vite-react-game-frontend/SKILL.md](../../vite-react-game-frontend/SKILL.md)
+→ Read [sui-on-chain-game-frontend-builder/SKILL.md](../../sui-on-chain-game-frontend-builder/SKILL.md)
