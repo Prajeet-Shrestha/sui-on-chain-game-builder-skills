@@ -22,6 +22,9 @@ Rules to avoid common mistakes when building on-chain games with the engine.
 | 12 | **Use the 🥇 dynamic field shortcut** for simple custom data | Create a full component module for a single counter or flag | Over-engineering wastes time. See [custom_components.md](./custom_components.md) for the 3-tier approach. |
 | 13 | **Create the World in `init`** — this guarantees exactly one World per deployment. Grid, TurnState, GameSession are satellites. | Create a World in a regular entry function (anyone could call it multiple times) | Each game = one World. `init` runs once on publish, preventing duplicate Worlds. |
 | 14 | **Put tests in a separate `_tests.move` file** (e.g., `game_tests.move`) | Embed `#[test]` functions at the bottom of the game module | Keeps game logic clean, makes tests easier to find, and avoids bloating the contract file. |
+| 15 | **Read component values into local variables** (`u64`, `u8`, `bool`) before mutating the same entity | Hold an immutable borrow (e.g., `position::borrow(entity)`) while calling `entity::uid_mut()` or `borrow_mut` | Move's borrow checker rejects code that holds `&Entity` and then borrows `&mut Entity`. Copy values into locals first. |
+| 16 | **Use `entity::share(entity)`** to share Entity objects | Use `transfer::public_transfer()` or `transfer::share_object()` on Entity | `Entity` has `key` only (no `store`). Standard Sui transfer functions require `store`. The engine provides `entity::share()` which wraps `transfer::share_object` internally. |
+| 17 | **Spawn tiles/entities in a post-init setup function** that accepts `clock: &Clock` | Call `spawn_tile` or `entity::new` inside `init()` | `init()` cannot accept shared objects like `Clock`. Use `init()` only for World + GameSession creation, then spawn entities in a separate entry function. |
 
 ---
 
@@ -45,7 +48,7 @@ use systems::combat_sys;
 combat_sys::attack(attacker, defender);
 
 // ✅ CORRECT — goes through World, which checks is_paused
-world::attack(&mut world, &grid, attacker, defender);
+world::attack(&world, attacker, defender);
 ```
 
 ### 3. Not validating turns
@@ -74,4 +77,54 @@ components::health::remove(&mut entity);
 components::position::remove(&mut entity);
 // ... remove all components
 entity::destroy(entity);
+```
+
+### 5. Using standard transfer on Entity
+```move
+// ❌ WRONG — Entity has `key` only, not `store`
+transfer::public_transfer(entity, player);   // fails: 'store' constraint not satisfied
+transfer::share_object(entity);              // fails: invalid private transfer call
+
+// ✅ CORRECT — use the engine wrapper
+entity::share(entity);
+```
+
+### 6. Holding immutable borrow while mutating
+```move
+// ❌ WRONG — borrow checker error
+let pos = position::borrow(entity);  // immutable borrow held
+let x = pos.x();
+let troops_mut = entity::borrow_mut_component<Troops>(entity);  // mutable borrow conflicts!
+
+// ✅ CORRECT — copy values into locals first
+let pos = position::borrow(entity);
+let x = pos.x();
+let y = pos.y();
+// pos borrow dropped after copying
+
+let troops_mut = entity::borrow_mut_component<Troops>(entity);  // safe now
+troop_mut.count = new_count;
+event::emit(TroopsChanged { x, y, count: new_count });
+```
+
+### 7. Spawning entities in `init()`
+```move
+// ❌ WRONG — init() cannot accept Clock (shared object)
+fun init(ctx: &mut TxContext) {
+    let world = world::create_world(...);
+    let tile = world::spawn_tile(&mut world, 0, 0, 1, clock, ctx);  // clock not available!
+}
+
+// ✅ CORRECT — use a separate setup function
+fun init(ctx: &mut TxContext) {
+    let world = world::create_world(name, max, ctx);
+    world::share(world);
+}
+
+public entry fun setup_board(
+    world: &mut World, clock: &Clock, ctx: &mut TxContext
+) {
+    let tile = world::spawn_tile(world, 0, 0, 1, clock, ctx);
+    entity::share(tile);
+}
 ```

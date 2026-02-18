@@ -58,13 +58,13 @@ Components **never call** other components or systems — they are just containe
 
 #### Attack
 **Module:** `components::attack` · **Bit:** 2
-**Struct:** `Attack { damage: u64, range: u64, pattern: u8 }`
+**Struct:** `Attack { damage: u64, range: u8, cooldown_ms: u64 }`
 
 | Function | Signature |
 |----------|-----------|
-| `new` | `(damage: u64, range: u64, pattern: u8): Attack` |
-| `damage` / `range` / `pattern` | `(&Attack): u64 / u64 / u8` |
-| `set_damage` / `set_range` / `set_pattern` | mutators |
+| `new` | `(damage: u64, range: u8, cooldown_ms: u64): Attack` |
+| `damage` / `range` / `cooldown_ms` | `(&Attack): u64 / u8 / u64` |
+| `set_damage` / `set_range` / `set_cooldown_ms` | mutators |
 
 ---
 
@@ -82,27 +82,27 @@ Components **never call** other components or systems — they are just containe
 
 #### Movement
 **Module:** `components::movement` · **Bit:** 4
-**Struct:** `Movement { speed: u64, pattern: u64 }`
+**Struct:** `Movement { speed: u8, move_pattern: u8 }`
 
 | Function | Signature |
 |----------|-----------|
-| `new` | `(speed: u64, pattern: u64): Movement` |
-| `speed` / `pattern` | getters |
-| `set_speed` / `set_pattern` | mutators |
-| `pattern_walk()` / `pattern_fly()` / `pattern_teleport()` | constants |
+| `new` | `(speed: u8, move_pattern: u8): Movement` |
+| `speed` / `move_pattern` | `(&Movement): u8` |
+| `set_speed` / `set_move_pattern` | mutators |
+| `pattern_walk()` / `pattern_fly()` / `pattern_teleport()` / `pattern_diagonal()` / `pattern_l_shape()` | constants |
 
 ---
 
 #### Defense
 **Module:** `components::defense` · **Bit:** 5
-**Struct:** `Defense { armor: u64, resistance: u64 }`
+**Struct:** `Defense { armor: u64, block: u64 }`
 
 | Function | Signature |
 |----------|-----------|
-| `new` | `(armor: u64, resistance: u64): Defense` |
-| `armor` / `resistance` | getters |
-| `reduce_damage` | `(&Defense, raw_damage: u64): u64` — returns `max(1, raw - armor)` |
-| `set_armor` / `set_resistance` | mutators |
+| `new` | `(armor: u64, block: u64): Defense` |
+| `armor` / `block` | getters |
+| `reduce_damage` | `(&Defense, incoming: u64): u64` — block-then-armor: `incoming - min(block, incoming) - min(armor, remainder)` |
+| `set_armor` / `set_block` | mutators |
 
 ---
 
@@ -121,13 +121,13 @@ Components **never call** other components or systems — they are just containe
 
 #### Marker
 **Module:** `components::marker` · **Bit:** 17
-**Struct:** `Marker { symbol: u64 }`
+**Struct:** `Marker { symbol: u8 }`
 
 | Function | Signature |
 |----------|-----------|
-| `new` | `(symbol: u64): Marker` |
-| `symbol` | `(&Marker): u64` |
-| `set_symbol` | `(&mut Marker, u64)` |
+| `new` | `(symbol: u8): Marker` |
+| `symbol` | `(&Marker): u8` |
+| `set_symbol` | `(&mut Marker, u8)` |
 
 ---
 
@@ -164,14 +164,14 @@ Components **never call** other components or systems — they are just containe
 
 #### Energy
 **Module:** `components::energy` · **Bit:** 9
-**Struct:** `Energy { current: u8, max: u8, regen_rate: u8 }`
+**Struct:** `Energy { current: u8, max: u8, regen: u8 }`
 
 | Function | Signature |
 |----------|-----------|
-| `new` | `(max: u8, regen_rate: u8): Energy` |
-| `current` / `max` / `regen_rate` | getters |
+| `new` | `(max: u8, regen: u8): Energy` |
+| `current` / `max` / `regen` | getters |
 | `spend` | `(&mut Energy, cost: u8)` — asserts enough |
-| `regenerate` | `(&mut Energy)` — adds regen_rate, caps at max |
+| `regenerate` | `(&mut Energy)` — adds regen, caps at max |
 | `has_enough` | `(&Energy, cost: u8): bool` |
 
 ---
@@ -260,13 +260,15 @@ Components **never call** other components or systems — they are just containe
 
 #### MapProgress
 **Module:** `components::map_progress` · **Bit:** 16
-**Struct:** `MapProgress { current_floor: u8, current_node: u8, floors_cleared: u8 }`
+**Struct:** `MapProgress { current_floor: u8, current_node: u8, path_chosen: vector<u8> }` *(has `store, drop` — no `copy`)*
 
 | Function | Signature |
 |----------|-----------|
 | `new` | `(): MapProgress` — starts at floor 0 |
-| `current_floor` / `current_node` / `floors_cleared` | getters |
+| `current_floor` / `current_node` | getters |
+| `path_chosen` | `(&MapProgress): &vector<u8>` |
 | `set_node` | `(&mut MapProgress, node: u8)` |
+| `choose_path` | `(&mut MapProgress, node: u8)` — pushes to path_chosen, sets current_node |
 | `advance_floor` | `(&mut MapProgress)` — increments floor, resets node |
 
 ---

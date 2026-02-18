@@ -97,14 +97,18 @@ sources/
 **Read:** [world_api.md](./world_api.md) for exact function signatures
 
 **Do:**
-1. Write `init()` — creates World, Grid, GameSession, TurnState and shares them all
-2. Write `join_game()` — adds player to session, optionally spawns player entity
-3. Write `start_game()` — transitions to Active state
-4. Write action functions (move, attack, play card, etc.)
-5. Write win condition check
-6. Write `game_over()` — declares winner, cleans up
+1. Write `init()` — creates World and GameSession, shares them. **Do NOT spawn entities or tiles in `init()`** — `init()` cannot accept shared objects like `Clock`, which is required by `entity::new()` and `spawn_*` functions.
+2. Write a **setup function** (e.g., `setup_board()`) — accepts `clock: &Clock`, creates Grid, TurnState, spawns tiles/entities, and shares them all.
+3. Write `join_game()` — adds player to session, optionally spawns player entity
+4. Write `start_game()` — transitions to Active state
+5. Write action functions (move, attack, play card, etc.)
+6. Write win condition check
+7. Write `game_over()` — declares winner, cleans up
 
-**Rule:** Always use World wrappers, never import systems directly for writes.
+> [!IMPORTANT]
+> `spawn_player`, `spawn_npc`, `spawn_tile`, and `entity::new` all require `&Clock`. Since `Clock` is a shared object, it **cannot** be passed to `init()`. Always create entities in a separate entry function that accepts `clock: &Clock`.
+
+**Rule:** Always use World wrappers, never import systems directly for writes. Use `entity::share()` to share Entity objects (not `transfer::public_share_object`).
 
 **Output:** Complete game module.
 

@@ -17,8 +17,8 @@ let grid = world::create_grid(&world, width, height, ctx);
 // 2. Share grid (players need access)
 world::share_grid(grid);
 
-// 3. Place entities on grid
-world::place(&mut world, &mut grid, &entity, x, y);
+// 3. Place entities on grid (pass entity ID, not reference)
+world::place(&world, &mut grid, object::id(&entity), x, y);
 ```
 
 ### Common Layouts
@@ -57,7 +57,7 @@ let full = grid_sys::is_full(&grid);
 ### Move Entity
 ```move
 // Move entity to new position (validates bounds, occupancy, speed)
-world::move_entity(&mut world, &mut grid, &mut entity, new_x, new_y);
+world::move_entity(&world, &mut entity, &mut grid, new_x, new_y);
 ```
 
 ### Movement Component
@@ -85,7 +85,7 @@ public entry fun player_move(
     assert!(turn_sys::is_player_turn(turn_state, player_index), ENotYourTurn);
 
     // 2. Move (system validates bounds, speed, occupancy)
-    world::move_entity(world, grid, entity, new_x, new_y);
+    world::move_entity(world, entity, grid, new_x, new_y);
 
     // 3. End turn (or continue with combat phase)
     world::end_turn(world, turn_state);
@@ -99,7 +99,7 @@ public entry fun player_move(
 Two entities exchange positions atomically:
 ```move
 // Swap positions of entity_a and entity_b
-world::swap(&mut world, &mut grid, &mut entity_a, &mut entity_b);
+world::swap(&world, &mut entity_a, &mut entity_b, &mut grid);
 ```
 
 **Use cases:** Match-3 puzzle games, position exchange mechanics.
@@ -111,7 +111,7 @@ world::swap(&mut world, &mut grid, &mut entity_a, &mut entity_b);
 Remove an adjacent enemy from the grid:
 ```move
 // Capture removes target from grid (like chess taking a piece)
-world::capture(&mut world, &mut grid, &attacker, &mut target);
+world::capture(&world, &attacker, &target, &mut grid);
 ```
 
 **What happens:**
@@ -128,25 +128,27 @@ world::capture(&mut world, &mut grid, &attacker, &mut target);
 ### Zone Setup
 Zones are entities with the Zone component:
 ```move
-// Spawn a zone tile
+// Spawn a zone tile (requires Clock — cannot be called in init())
 let zone_entity = world::spawn_tile(&mut world, x, y, ZONE_TYPE, clock, ctx);
 // Zone component must be added for territory mechanics
 ```
 
+> **Note:** `spawn_tile` requires `&Clock`, which is a shared object. Shared objects cannot be passed to `init()`. Spawn tiles in a separate setup function, not in `init()`.
+
 ### Instant Claim
 ```move
-// Team claims a zone immediately
-world::claim(&mut world, &mut zone_entity, team_id);
+// Entity claims a zone immediately (based on entity's team)
+world::claim(&world, &entity, &mut zone_entity);
 ```
 
 ### Progressive Capture
 ```move
-// Start contesting — increases capture progress
-world::contest(&mut world, &mut zone_entity, team_id);
+// Start contesting — increases capture progress by amount
+world::contest(&world, &entity, &mut zone_entity, capture_amount);
 // ... multiple turns of contesting ...
 
 // When capture_progress reaches threshold:
-world::capture_zone(&mut world, &mut zone_entity);
+world::capture_zone(&world, &mut zone_entity, team_id);
 ```
 
 ---
@@ -156,13 +158,13 @@ world::capture_zone(&mut world, &mut zone_entity);
 ### Flag Mechanics
 ```move
 // Player picks up an objective (flag)
-world::pick_up(&mut world, &mut player_entity, &mut flag_entity);
+world::pick_up(&world, &mut player_entity, &mut flag_entity);
 
 // Player drops flag (e.g., on death or voluntary)
-world::drop_flag(&mut world, &mut player_entity, &mut flag_entity);
+world::drop_flag(&world, &mut player_entity, &mut flag_entity);
 
 // Player scores with the flag (reaches home base)
-world::score(&mut world, &mut player_entity, &mut flag_entity);
+world::score(&world, &mut player_entity, &mut flag_entity, team_id);
 ```
 
 ### Objective Flow
@@ -199,8 +201,8 @@ public entry fun place_marker(
     // Spawn marker tile at position
     let team = if (player_index == 0) { 0 } else { 1 };
     let marker = world::spawn_tile(world, x, y, team, clock, ctx);
-    world::place(world, grid, &marker, x, y);
-    transfer::public_share_object(marker);
+    world::place(world, grid, object::id(&marker), x, y);
+    entity::share(marker);  // Entity has `key` only — use entity::share(), NOT transfer::public_share_object()
 
     // Check win
     if (check_three_in_a_row(grid, team)) {

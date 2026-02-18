@@ -76,19 +76,19 @@ References: spatial_patterns + combat_patterns + turn_and_win_patterns
 |-----------|-----------|-----|
 | Position | `x: u64, y: u64` | 0 |
 | Health | `current: u64, max: u64` | 1 |
-| Attack | `value: u64, range: u64` | 2 |
+| Attack | `damage: u64, range: u8, cooldown_ms: u64` | 2 |
 | Identity | `name: String, level: u64` | 3 |
-| Movement | `speed: u64, move_type: u8` | 4 |
-| Defense | `armor: u64` | 5 |
+| Movement | `speed: u8, move_pattern: u8` | 4 |
+| Defense | `armor: u64, block: u64` | 5 |
 | Team | `team_id: u8` | 6 |
-| Zone | `zone_type: u8, owner: u8, capture_progress: u64` | 7 |
-| Objective | `objective_type: u8, holder: Option<address>, score: u64` | 8 |
-| Energy | `current: u64, max: u64, regen: u64` | 9 |
-| StatusEffect | `effects: vector<Effect>` | 10 |
-| Stats | `strength: u64, dexterity: u64, intelligence: u64` | 11 |
+| Zone | `zone_type: u8, controlled_by: u8, capture_progress: u64` | 7 |
+| Objective | `objective_type: u8, holder: Option<ID>, origin_x: u64, origin_y: u64` | 8 |
+| Energy | `current: u8, max: u8, regen: u8` | 9 |
+| StatusEffect | `effect_type: u8, stacks: u64, duration: u8` | 10 |
+| Stats | `strength: u64, dexterity: u64, luck: u64` | 11 |
 | Deck | `draw_pile, hand, discard_pile: vector<CardData>` | 12 |
-| Inventory | `items: vector<u64>` | 13 |
-| Relic | `relics: vector<RelicData>` | 14 |
+| Inventory | `items: vector<u64>, max_size: u64` | 13 |
+| Relic | `relic_type: u8, modifier_type: u8, modifier_value: u64` | 14 |
 | Gold | `amount: u64` | 15 |
-| MapProgress | `current_floor: u64, current_node: u64, max_floor: u64` | 16 |
-| Marker | `marker_type: u8` | 17 |
+| MapProgress | `current_floor: u8, current_node: u8, path_chosen: vector<u8>` | 16 |
+| Marker | `symbol: u8` | 17 |
