@@ -4,9 +4,22 @@ Follow these 9 steps in order when building an on-chain game.
 
 ---
 
-## Step 1: Understand
+## Step 1: Understand & Ideate
 
-**Action:** Parse the user's game description. Identify core mechanics.
+**Action:** Parse the user's game description. Apply game design theory. Identify core mechanics.
+
+> [!IMPORTANT]
+> **Before proceeding, load the Game Design Theory skill** at `../game-design-theory/SKILL.md`.
+> Use it to evaluate and refine the game concept through the MDA framework, core loop design, and player psychology.
+> If this skill is not found, warn the user:
+> *"The game-design-theory skill is not installed at `.agent/skills/game-design-theory/`. Without it, the game mechanics and loop may be incomplete. Please install it before proceeding."*
+
+**Game Design Theory — apply these:**
+1. Define the **core loop** (input → process → feedback → reward → repeat)
+2. Identify the **target aesthetic** via MDA (what emotion should the player feel?)
+3. Check the **flow channel** (is the challenge curve appropriate?)
+4. Identify the **player type** being served (Achiever, Explorer, Socializer, Killer)
+5. Plan the **reward schedule** (fixed ratio, variable, milestone)
 
 **Questions to answer:**
 - What kind of game? (board, combat, cards, territory, hybrid)
@@ -14,7 +27,7 @@ Follow these 9 steps in order when building an on-chain game.
 - Turn-based or real-time? (engine only supports turn-based)
 - What's the win condition? (elimination, score, objective, board state)
 
-**Output:** A list of game mechanics (e.g., "3×3 grid, 2 players, place markers, 3-in-a-row wins").
+**Output:** A list of game mechanics with game design rationale (e.g., "3×3 grid, 2 players, place markers, 3-in-a-row wins — core aesthetic: competition/mastery, loop: place → check → switch turns").
 
 ---
 

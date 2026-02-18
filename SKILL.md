@@ -30,9 +30,30 @@ description: Build fully on-chain games by composing the ECS game engine's syste
 
 ---
 
-## ⛔ Step 0: Validate the Game Concept FIRST
+## ⛔ Step 0: Ideate & Validate the Game Concept FIRST
 
-**Before writing any code, check if the game is a good fit for this engine.**
+### 0-A: Apply Game Design Theory
+
+> [!IMPORTANT]
+> **Before ANY validation or coding, load the Game Design Theory skill.**
+> Read `../game-design-theory/SKILL.md` and use it to evaluate the game concept through the MDA framework, core loop design, flow channel analysis, and player psychology.
+> This ensures your game has a **complete, engaging game loop** — not just valid engine mechanics.
+
+> [!CAUTION]
+> **If `../game-design-theory/` is not found**, STOP and tell the user:
+> *"The game-design-theory skill is not installed. Without it, the game mechanics and loop you create may be incomplete or lack proper engagement design. Please install the game-design-theory skill at `.agent/skills/game-design-theory/` before proceeding."*
+> Do NOT silently skip this step.
+
+**What to do with game-design-theory:**
+1. Define the **core loop** (input → process → feedback → reward → repeat)
+2. Identify the **target aesthetic** via the MDA framework (what emotion should the player feel?)
+3. Check the concept against the **flow channel** (challenge vs. skill curve)
+4. Identify the **player type** the game serves (Achiever, Explorer, Socializer, Killer)
+5. Design the **reward schedule** (fixed ratio, variable, milestone)
+
+### 0-B: Validate Engine Fit
+
+**After game design ideation, check if the game is a good fit for this engine.**
 
 This engine is built for **turn-based, discrete state-machine games** where each player action is a blockchain transaction. It is NOT for real-time games.
 
@@ -115,11 +136,15 @@ Before using this skill, you **must** also read these foundational skills:
 
 | Skill | Path | What It Provides |
 |-------|------|-----------------|
+| **Game Design Theory** ⚠️ | `../game-design-theory/SKILL.md` | MDA framework, core loop design, flow channel, player psychology, reward systems |
 | **Sui Move Patterns** | `.agent/skills/sui-move-skills/sui_move_patterns/SKILL.md` | Object model, abilities, generics, collections, API design |
 | **Sui Framework** | `.agent/skills/sui-move-skills/sui_framework/SKILL.md` | Clock, randomness, events, dynamic fields, transfer, storage |
 | **Sui Engineering** | `.agent/skills/sui-move-skills/sui_engineering/SKILL.md` | Upgradeability, gas limits, error handling, testing |
 
-These provide **Move language + Sui platform knowledge**. This skill provides **engine-specific game building knowledge**. Both layers are required.
+> [!WARNING]
+> **Game Design Theory is mandatory for ideation.** If `../game-design-theory/` does not exist, warn the user that their game mechanics and loop may be incomplete without it. Do not proceed with game ideation until this is resolved.
+
+These provide **Move language + Sui platform knowledge**. This skill provides **engine-specific game building knowledge**. Game Design Theory provides **game design fundamentals**. All layers are required.
 
 ---
 
