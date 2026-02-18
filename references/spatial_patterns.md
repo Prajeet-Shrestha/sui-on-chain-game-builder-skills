@@ -177,16 +177,30 @@ Flag at base → pick_up() → carry → reach goal → score()
 
 ## Board Game Recipe: Tic-Tac-Toe
 
-Combining these patterns:
-```move
-// Setup
-let grid = world::create_grid(&world, 3, 3, ctx);
-world::share_grid(grid);
+> [!IMPORTANT]
+> `grid_sys::get_entity_at(grid, x, y)` returns an `ID`, not an `&Entity`. You **cannot** read component data (Marker symbol, Team ID) from just an ID. For win/draw detection, store board state in your `GameSession` struct and check that.
 
-// Each turn: place a marker
+### GameSession with Board Vector
+```move
+public struct GameSession has key {
+    id: UID,
+    state: u8,
+    players: vector<address>,
+    board: vector<u8>,  // 9 cells, row-major: 0=empty, 1=X, 2=O
+    // ... other fields
+}
+
+// Initialize board in create_game:
+let mut board = vector::empty<u8>();
+let mut i = 0;
+while (i < 9) { vector::push_back(&mut board, 0); i = i + 1; };
+```
+
+### Place Marker + Win Detection
+```move
 public entry fun place_marker(
-    session: &GameSession,
-    world: &mut World,
+    session: &mut GameSession,
+    world: &mut World,        // &mut for spawn_tile (increments entity count)
     grid: &mut Grid,
     turn_state: &mut TurnState,
     x: u64, y: u64,
@@ -198,19 +212,47 @@ public entry fun place_marker(
     assert!(turn_sys::is_player_turn(turn_state, player_index), ENotYourTurn);
     assert!(!grid_sys::is_occupied(grid, x, y), ECellOccupied);
 
-    // Spawn marker tile at position
-    let team = if (player_index == 0) { 0 } else { 1 };
-    let marker = world::spawn_tile(world, x, y, team, clock, ctx);
+    // Place on engine grid (for spatial tracking)
+    let symbol: u8 = if (player_index == 0) { 1 } else { 2 };  // 1=X, 2=O
+    let marker = world::spawn_tile(world, x, y, symbol, clock, ctx);
     world::place(world, grid, object::id(&marker), x, y);
-    entity::share(marker);  // Entity has `key` only — use entity::share(), NOT transfer::public_share_object()
+    entity::share(marker);
 
-    // Check win
-    if (check_three_in_a_row(grid, team)) {
-        end_game(session, tx_context::sender(ctx));
+    // Also update the board vector (for win detection)
+    let idx = (y * 3 + x) as u64;
+    *vector::borrow_mut(&mut session.board, idx) = symbol;
+
+    // Check win using board vector (NOT grid queries)
+    if (check_winner(&session.board, symbol)) {
+        session.state = STATE_FINISHED;
+        session.winner = option::some(tx_context::sender(ctx));
     } else if (grid_sys::is_full(grid)) {
-        end_game_draw(session);
+        session.state = STATE_FINISHED;  // draw
     };
 
     world::end_turn(world, turn_state);
+}
+```
+
+### Win Check Helpers
+```move
+fun check_winner(board: &vector<u8>, symbol: u8): bool {
+    // Rows
+    check_line(board, 0, 1, 2, symbol) ||
+    check_line(board, 3, 4, 5, symbol) ||
+    check_line(board, 6, 7, 8, symbol) ||
+    // Columns
+    check_line(board, 0, 3, 6, symbol) ||
+    check_line(board, 1, 4, 7, symbol) ||
+    check_line(board, 2, 5, 8, symbol) ||
+    // Diagonals
+    check_line(board, 0, 4, 8, symbol) ||
+    check_line(board, 2, 4, 6, symbol)
+}
+
+fun check_line(board: &vector<u8>, a: u64, b: u64, c: u64, symbol: u8): bool {
+    *vector::borrow(board, a) == symbol &&
+    *vector::borrow(board, b) == symbol &&
+    *vector::borrow(board, c) == symbol
 }
 ```

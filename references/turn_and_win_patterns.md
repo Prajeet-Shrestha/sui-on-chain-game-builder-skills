@@ -23,7 +23,7 @@ world::share_turn_state(turn_state);
 assert!(turn_sys::is_player_turn(&turn_state, player_index), ENotYourTurn);
 
 // End turn (advances to next player)
-world::end_turn(&mut world, &mut turn_state);
+world::end_turn(&world, &mut turn_state);
 ```
 
 ### Phase Mode (phases within each turn)
@@ -42,10 +42,10 @@ world::share_turn_state(turn_state);
 let phase = turn_sys::current_phase(&turn_state);
 
 // Advance to next phase
-world::advance_phase(&mut world, &mut turn_state);
+world::advance_phase(&world, &mut turn_state);
 
 // After last phase, call end_turn to move to next player
-world::end_turn(&mut world, &mut turn_state);
+world::end_turn(&world, &mut turn_state);
 ```
 
 ### Phase Constants
@@ -80,7 +80,7 @@ public entry fun take_action(
     // 3. Do action...
 
     // 4. End turn
-    world::end_turn(&mut world, turn_state);
+    world::end_turn(&world, turn_state);
 }
 ```
 
@@ -104,7 +104,8 @@ public entry fun take_action(
 if (world::check_elimination(&world, &target_entity)) {
     session.state = STATE_FINISHED;
     session.winner = option::some(tx_context::sender(ctx));
-    world::declare_winner(&mut world, tx_context::sender(ctx), 0); // WIN_ELIMINATION
+    // declare_winner expects an entity ID, not an address
+    world::declare_winner(&world, object::id(&winner_entity), 0, clock); // WIN_ELIMINATION
     event::emit(GameOver { game_id: object::id(session), winner: tx_context::sender(ctx) });
 }
 ```
@@ -115,16 +116,24 @@ if (world::check_elimination(&world, &target_entity)) {
 if (grid_sys::is_full(&grid)) {
     // Could be a draw or check for winner
     session.state = STATE_FINISHED;
-    world::declare_winner(&mut world, winner_addr, 1); // WIN_BOARD_FULL
+    world::declare_winner(&world, winner_entity_id, 1, clock); // WIN_BOARD_FULL
 }
 ```
 
 ### Custom Win Check
+
+> [!IMPORTANT]
+> `grid_sys::get_entity_at()` returns an `ID`, not an `&Entity`. You **cannot** read component data from just an ID. For pattern detection (3-in-a-row, etc.), store board state in your `GameSession` struct as a `vector<u8>` and check that instead.
+
 ```move
-// Game-specific: 3-in-a-row
-fun check_three_in_a_row(grid: &Grid, team: u8): bool {
-    // Check rows, columns, diagonals
-    // ... game-specific logic using grid_sys queries
+// Store board state in GameSession: board: vector<u8> (0=empty, 1=X, 2=O)
+// Update the board vector alongside the engine Grid on each move.
+
+fun check_winner(board: &vector<u8>, symbol: u8): bool {
+    // Check rows, columns, diagonals using board vector
+    check_line(board, 0, 1, 2, symbol) || // row 0
+    check_line(board, 3, 4, 5, symbol) || // row 1
+    // ... etc
 }
 ```
 
