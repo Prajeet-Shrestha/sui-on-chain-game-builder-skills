@@ -114,3 +114,28 @@ When fixing the skill docs, check each item off.
   - Similarly for `spawn_player` name parameter
 - **Discovered**: 2026-02-18, TicTacToe game build
 - **Status**: ✅ Fixed
+
+---
+
+## 10. `grid_sys` queries return `ID`, not `&Entity` — win detection pattern is misleading
+
+- **Files**: [spatial_patterns.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/references/spatial_patterns.md) (lines 178–216), [turn_and_win_patterns.md](file:///Users/ps/Documents/ibriz/git/engine_examples/.agent/skills/sui-on-chain-game-builder-skills/references/turn_and_win_patterns.md) (lines 124–128)
+- **What the docs imply**: `check_three_in_a_row(grid, team)` can detect 3-in-a-row using `grid_sys` queries alone (e.g., `grid_sys::get_entity_at()` → read Marker/Team component)
+- **What the engine actually has**: `grid_sys::get_entity_at(grid, x, y): Option<ID>` — returns an **entity ID**, not an `&Entity` reference. You **cannot** read component data (Marker symbol, Team ID) from just an ID without the actual entity reference.
+- **Impact**: Agent attempts to build win detection by iterating grid cells and reading components, which fails because there's no way to borrow an `&Entity` from an `ID` in Move. The resulting code either doesn't compile or requires passing all 9 tile entity references into the function.
+- **Recommended pattern**: Store board state as a `vector<u8>` in `GameSession` (0=empty, 1=X, 2=O). Update this vector alongside the engine Grid on each move. Use the vector (not grid queries) for win/draw detection.
+  ```move
+  // In GameSession:
+  board: vector<u8>,  // 9 cells, row-major, 0=empty, 1=X, 2=O
+  
+  // Win check uses the board vector directly:
+  fun check_winner(board: &vector<u8>, symbol: u8): bool {
+      check_line(board, 0, 1, 2, symbol) || // row 0
+      check_line(board, 3, 4, 5, symbol) || // row 1
+      // ... etc
+  }
+  ```
+- **Alternative**: Pass all tile entity references as `vector<Entity>` and read components, but this is expensive and cumbersome.
+- **Fix**: Update the Tic-Tac-Toe recipe in `spatial_patterns.md` and `turn_and_win_patterns.md` to use the board-vector approach, and add a note that `grid_sys::get_entity_at()` returns `ID`, not a borrow.
+- **Discovered**: 2026-02-18, TicTacToe game build
+- **Status**: ⬜ Open
