@@ -25,7 +25,7 @@ name = "my_game"
 edition = "2024.beta"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet", override = true }
+# IMPORTANT: Do NOT add Sui = { git = "..." } here — the Sui CLI auto-injects it.
 world = { git = "https://github.com/Prajeet-Shrestha/sui-game-engine.git", subdir = "world", rev = "main" }
 
 [addresses]
@@ -49,10 +49,10 @@ my_game = "0x0"
 module my_game::game;
 
 // === Imports ===
+// NOTE: sui::object (UID, ID), sui::transfer, sui::tx_context, sui::event
+//       are auto-imported in Move 2024 — do NOT import them explicitly.
 use std::ascii;
 use sui::clock::Clock;
-use sui::event;
-use sui::tx_context;
 use world::world::{Self, World};
 use systems::grid_sys::{Self, Grid};
 use systems::turn_sys::{Self, TurnState};
@@ -131,7 +131,7 @@ fun init(ctx: &mut TxContext) {
 
 /// Called once after deploy to set up the board. Separate from init()
 /// because spawn functions require &Clock (a shared object).
-public entry fun setup_board(
+entry fun setup_board(
     world: &mut World,
     clock: &Clock,
     ctx: &mut TxContext,
@@ -144,7 +144,7 @@ public entry fun setup_board(
 }
 
 /// Player joins the game
-public entry fun join_game(
+entry fun join_game(
     session: &mut GameSession,
     world: &mut World,
     clock: &Clock,
@@ -177,7 +177,7 @@ public entry fun join_game(
 }
 
 /// Start the game (called by creator after all players joined)
-public entry fun start_game(
+entry fun start_game(
     session: &mut GameSession,
     ctx: &TxContext,
 ) {
@@ -192,7 +192,7 @@ public entry fun start_game(
 // === Action Functions ===
 
 /// Template for a player action
-public entry fun take_action(
+entry fun take_action(
     session: &GameSession,
     world: &World,              // &World for action functions (not &mut)
     turn_state: &mut TurnState,
@@ -237,7 +237,9 @@ fun find_player_index(players: &vector<address>, player: address): u64 {
 // === Tests — in a SEPARATE file (sources/game_tests.move) ===
 // See the Test Module Template section below.
 
-// === Test Helper (allows tests to call init) ===
+// === MANDATORY Test Helper — without this, game_tests.move WILL fail ===
+// Tests cannot call `init()` directly (it's private).
+// This #[test_only] wrapper is REQUIRED or tests get E03003: unbound function.
 #[test_only]
 public fun init_for_testing(ctx: &mut TxContext) {
     init(ctx);
@@ -254,13 +256,12 @@ Create `sources/game_tests.move`:
 #[test_only]
 module my_game::game_tests;
 
-use std::ascii;
+// NOTE: Do NOT import sui::object, sui::transfer, sui::tx_context, sui::test_utils
+//       unless you actually call a function from them. They cause unused-alias warnings.
 use sui::test_scenario;
 use sui::clock;
 use my_game::game::{Self, GameSession};
 use world::world::World;
-use systems::grid_sys::Grid;
-use systems::turn_sys::TurnState;
 
 #[test]
 fun test_create_and_join_game() {
@@ -309,4 +310,4 @@ Only allow actions when `state == STATE_ACTIVE`. Only allow joining when `state 
 | Player Entity | Owned by player OR Shared | Depends on game design |
 
 ### Entry Points
-Every player-facing function should be `public entry fun` so it can be called directly as a transaction.
+entry fun` so it can be called directly as a transaction.

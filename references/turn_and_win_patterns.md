@@ -63,7 +63,7 @@ const PHASE_END: u8 = 3;
 Always validate turns before allowing actions:
 
 ```move
-public entry fun take_action(
+entry fun take_action(
     session: &GameSession,
     turn_state: &TurnState,
     // ...
@@ -152,13 +152,13 @@ LOBBY ─────────────────→ LOBBY ────�
 ### Enforcing Transitions
 ```move
 // Only allow joining in LOBBY
-public entry fun join_game(session: &mut GameSession, ...) {
+entry fun join_game(session: &mut GameSession, ...) {
     assert!(session.state == STATE_LOBBY, EInvalidState);
     // ...
 }
 
 // Only allow actions in ACTIVE
-public entry fun take_action(session: &GameSession, ...) {
+entry fun take_action(session: &GameSession, ...) {
     assert!(session.state == STATE_ACTIVE, EGameNotActive);
     // ...
 }

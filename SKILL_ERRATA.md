@@ -139,3 +139,37 @@ When fixing the skill docs, check each item off.
 - **Fix**: Update the Tic-Tac-Toe recipe in `spatial_patterns.md` and `turn_and_win_patterns.md` to use the board-vector approach, and add a note that `grid_sys::get_entity_at()` returns `ID`, not a borrow.
 - **Discovered**: 2026-02-18, TicTacToe game build
 - **Status**: ✅ Fixed
+
+---
+
+## 11. LLM hallucinates Rust-style wrapping arithmetic
+
+- **Files**: `dos_and_donts.md`, `prompts.py` (MOVE_SYNTAX_RULES)
+- **Issue**: The LLM generates `a.wrapping_mul(seed).wrapping_add(c)` or `x.checked_add(1)` — methods that do NOT exist in Move. Move only has plain operators (`+`, `-`, `*`, `/`, `%`) and aborts on overflow.
+- **Impact**: `E04023: invalid method call` — the function doesn't exist on integer types.
+- **Fix**: Added Rule 24 to `dos_and_donts.md` + Pitfall 12 with ❌/✅ examples. Added "Move Arithmetic" section to `MOVE_SYNTAX_RULES` in `prompts.py`.
+- **Discovered**: 2026-03-03, Minesweeper game build (`game.move:579`)
+- **Status**: ✅ Fixed
+
+---
+
+## 12. LLM omits `init_for_testing` causing E03003 in tests
+
+- **Files**: `game_template.md`, `move_codegen.py` (GENERATE_SYSTEM checklist)
+- **Issue**: The template shows `init_for_testing` at the bottom of `game.move`, but the composing checklist didn't enforce it. The LLM frequently omits it, then `game_tests.move` calls `game::init_for_testing(ctx)` which doesn't exist → `E03003: unbound function`.
+- **Impact**: All tests fail because they can't initialize the game module.
+- **Fix**: Made the `init_for_testing` comment in `game_template.md` say "MANDATORY" and added checklist item #9 in `move_codegen.py`.
+- **Discovered**: 2026-03-03, Minesweeper game build
+- **Status**: ✅ Fixed
+
+---
+
+## 13. `frontend_gen.py` IMPORT_RULES uses legacy `@mysten/dapp-kit`
+
+- **Files**: `frontend_gen.py` (IMPORT_RULES, DEPENDENCY_VERSIONS, PHASER_IMPORT_RULES)
+- **Issue**: The hardcoded prompt constants referenced the legacy `@mysten/dapp-kit` package (`SuiClient`, `createNetworkConfig`, `getJsonRpcFullnodeUrl`, `SuiClientProvider`, `WalletProvider`) while the skill docs correctly say to use `@mysten/dapp-kit-react` + `@mysten/dapp-kit-core` + `SuiGrpcClient`. The prompt overrides the skill docs → LLM generates deprecated imports → `TS2305: Module has no exported member`.
+- **Impact**: Every generated frontend fails the first build with TypeScript export errors.
+- **Fix**: Updated all prompt constants to use `@mysten/dapp-kit-react`, `@mysten/dapp-kit-core`, `SuiGrpcClient`, and `DAppKitProvider`. Added explicit "NEVER use" warnings for deprecated imports.
+- **Discovered**: 2026-03-03, Minesweeper frontend build
+- **Status**: ✅ Fixed
+

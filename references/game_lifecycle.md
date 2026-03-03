@@ -112,7 +112,7 @@ public fun move_and_attack(
 }
 
 // Also provide an entry point for simple single-action calls
-public entry fun move_and_attack_entry(
+entry fun move_and_attack_entry(
     world: &World, grid: &mut Grid,
     entity: &mut Entity, target: &mut Entity,
     new_x: u64, new_y: u64,
@@ -128,7 +128,7 @@ public entry fun move_and_attack_entry(
 Every action must validate the caller:
 
 ```move
-public entry fun take_action(
+entry fun take_action(
     session: &GameSession,
     turn_state: &TurnState,
     // ...
@@ -167,19 +167,19 @@ public entry fun take_action(
 ### Enforcing Transitions
 ```move
 // Only in LOBBY
-public entry fun join_game(session: &mut GameSession, ...) {
+entry fun join_game(session: &mut GameSession, ...) {
     assert!(session.state == STATE_LOBBY, EInvalidState);
 }
 
 // Only in LOBBY, and only by creator
-public entry fun start_game(session: &mut GameSession, ctx: &TxContext) {
+entry fun start_game(session: &mut GameSession, ctx: &TxContext) {
     assert!(session.state == STATE_LOBBY, EInvalidState);
     assert!(tx_context::sender(ctx) == session.creator, ENotCreator);
     session.state = STATE_ACTIVE;
 }
 
 // Only in ACTIVE
-public entry fun take_action(session: &GameSession, ...) {
+entry fun take_action(session: &GameSession, ...) {
     assert!(session.state == STATE_ACTIVE, EGameNotActive);
 }
 

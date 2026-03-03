@@ -31,7 +31,7 @@ if (world::check_elimination(&world, &defender)) {
 
 ### Combat + Turn Pattern
 ```move
-public entry fun attack_action(
+entry fun attack_action(
     session: &GameSession,
     world: &mut World,
     grid: &Grid,
@@ -128,7 +128,7 @@ world::regenerate_energy(&mut world, &mut entity, entity_regen_amount);
 
 ### Energy-Gated Action Pattern
 ```move
-public entry fun special_attack(
+entry fun special_attack(
     world: &mut World,
     entity: &mut Entity,
     target: &mut Entity,
@@ -152,7 +152,7 @@ public entry fun special_attack(
 ## Combined Combat Recipe: Arena Turn
 
 ```move
-public entry fun arena_turn(
+entry fun arena_turn(
     session: &GameSession,
     world: &mut World,
     grid: &mut Grid,

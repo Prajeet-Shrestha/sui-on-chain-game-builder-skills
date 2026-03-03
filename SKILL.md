@@ -11,7 +11,7 @@ description: Build fully on-chain games by composing the ECS game engine's syste
 >
 > - **If it exists:** Read it and apply it during Step 0-A (game ideation).
 > - **If it does NOT exist:** **ABORT. Do NOT proceed.** Tell the user:
->   *"The game-design-theory skill is not installed at `.agent/skills/game-design-theory/`. Without it, the game mechanics and loop you create may be incomplete or lack proper engagement design. Please install it before proceeding, or explicitly confirm you want to skip game design ideation."*
+>   *"The game-design-theory skill is not installed at `skills/game-design-theory/`. Without it, the game mechanics and loop you create may be incomplete or lack proper engagement design. Please install it before proceeding, or explicitly confirm you want to skip game design ideation."*
 >
 > **Do NOT silently skip this check. Do NOT proceed to Rule Zero, planning, or any other step until this is resolved.**
 
@@ -51,7 +51,7 @@ description: Build fully on-chain games by composing the ECS game engine's syste
 
 > [!CAUTION]
 > **If `../game-design-theory/` is not found**, STOP and tell the user:
-> *"The game-design-theory skill is not installed. Without it, the game mechanics and loop you create may be incomplete or lack proper engagement design. Please install the game-design-theory skill at `.agent/skills/game-design-theory/` before proceeding."*
+> *"The game-design-theory skill is not installed. Without it, the game mechanics and loop you create may be incomplete or lack proper engagement design. Please install the game-design-theory skill at `skills/game-design-theory/` before proceeding."*
 > Do NOT silently skip this step.
 
 **What to do with game-design-theory:**
@@ -176,9 +176,9 @@ Before using this skill, you **must** also read these foundational skills:
 | Skill | Path | What It Provides |
 |-------|------|-----------------|
 | **Game Design Theory** ⚠️ | `../game-design-theory/SKILL.md` | MDA framework, core loop design, flow channel, player psychology, reward systems |
-| **Sui Move Patterns** | `.agent/skills/sui-move-skills/sui_move_patterns/SKILL.md` | Object model, abilities, generics, collections, API design |
-| **Sui Framework** | `.agent/skills/sui-move-skills/sui_framework/SKILL.md` | Clock, randomness, events, dynamic fields, transfer, storage |
-| **Sui Engineering** | `.agent/skills/sui-move-skills/sui_engineering/SKILL.md` | Upgradeability, gas limits, error handling, testing |
+| **Sui Move Patterns** | `skills/sui-move-skills/sui_move_patterns/SKILL.md` | Object model, abilities, generics, collections, API design |
+| **Sui Framework** | `skills/sui-move-skills/sui_framework/SKILL.md` | Clock, randomness, events, dynamic fields, transfer, storage |
+| **Sui Engineering** | `skills/sui-move-skills/sui_engineering/SKILL.md` | Upgradeability, gas limits, error handling, testing |
 
 > [!WARNING]
 > **Game Design Theory is mandatory for ideation.** If `../game-design-theory/` does not exist, warn the user that their game mechanics and loop may be incomplete without it. Do not proceed with game ideation until this is resolved.

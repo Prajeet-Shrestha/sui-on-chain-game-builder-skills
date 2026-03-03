@@ -50,13 +50,13 @@ const CARD_POWER: u8 = 2;    // Permanent buff
 ### Deck Combat Turn Pattern
 ```move
 // Phase mode: Draw → Play → Combat → End
-public entry fun draw_phase(world: &mut World, entity: &mut Entity, turn_state: &TurnState, rng: &mut RandomGenerator) {
+entry fun draw_phase(world: &mut World, entity: &mut Entity, turn_state: &TurnState, rng: &mut RandomGenerator) {
     assert!(turn_sys::current_phase(turn_state) == PHASE_DRAW, EWrongPhase);
     world::draw_cards(world, entity, 5, rng);
     world::advance_phase(world, turn_state);
 }
 
-public entry fun play_phase(world: &mut World, entity: &mut Entity, turn_state: &TurnState, card_indices: vector<u64>) {
+entry fun play_phase(world: &mut World, entity: &mut Entity, turn_state: &TurnState, card_indices: vector<u64>) {
     assert!(turn_sys::current_phase(turn_state) == PHASE_PLAY, EWrongPhase);
     let i = 0;
     while (i < vector::length(&card_indices)) {
@@ -118,7 +118,7 @@ world::remove_card(&mut world, &mut player, card_index, cost);
 
 ### Shop Node Pattern
 ```move
-public entry fun shop_buy(
+entry fun shop_buy(
     world: &mut World,
     player: &mut Entity,
     item_type: u8, // 0 = card, 1 = relic, 2 = remove

@@ -72,7 +72,7 @@ Speed determines maximum movement distance per turn. If `speed = 2`, the entity 
 
 ### Movement Validation Pattern
 ```move
-public entry fun player_move(
+entry fun player_move(
     world: &mut World,
     grid: &mut Grid,
     turn_state: &TurnState,
@@ -198,7 +198,7 @@ while (i < 9) { vector::push_back(&mut board, 0); i = i + 1; };
 
 ### Place Marker + Win Detection
 ```move
-public entry fun place_marker(
+entry fun place_marker(
     session: &mut GameSession,
     world: &mut World,        // &mut for spawn_tile (increments entity count)
     grid: &mut Grid,
