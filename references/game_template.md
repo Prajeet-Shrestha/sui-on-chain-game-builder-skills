@@ -294,6 +294,16 @@ fun test_create_and_join_game() {
 
 ## Key Patterns
 
+### Lifecycle Overview
+```
+Deploy:         [Publisher] sui client publish  → init() runs automatically
+Transaction 1:  [Player1]   join_game()         → spawn player entity
+Transaction 2:  [Player2]   join_game()         → spawn player entity
+Transaction 3:  [Creator]   start_game()        → state = ACTIVE
+Transaction 4+: [Current]   take_action()       → move/attack/end_turn
+Transaction N:  [System]    game ends           → declare winner, state = FINISHED
+```
+
 ### State Machine
 ```
 LOBBY → (all players joined) → ACTIVE → (win condition met) → FINISHED
@@ -307,7 +317,24 @@ Only allow actions when `state == STATE_ACTIVE`. Only allow joining when `state 
 | Grid | Shared | All players read/write grid |
 | GameSession | Shared | All players check game state |
 | TurnState | Shared | All players check/advance turns |
-| Player Entity | Owned by player OR Shared | Depends on game design |
+| Player Entity | Shared (PvP) or Owned (solo) | Entity has `key` only — use `entity::share()` |
 
-### Entry Points
-entry fun` so it can be called directly as a transaction.
+### Caller Validation (every action function)
+```move
+entry fun take_action(session: &GameSession, turn_state: &TurnState, ctx: &TxContext) {
+    assert!(session.state == STATE_ACTIVE, EGameNotActive);
+    let sender = tx_context::sender(ctx);
+    let player_index = find_player_index(&session.players, sender);
+    assert!(turn_sys::is_player_turn(turn_state, (player_index as u8)), ENotYourTurn);
+    // ... execute action, then end_turn
+}
+```
+
+### PTB Batching
+| Batch Together ✅ | Keep Separate ❌ |
+|---|---|
+| Move + Attack (same player, same turn) | Create game + Join game (different actors) |
+| Draw + Play + Discard (card phase) | Player 1's turn + Player 2's turn |
+| Status tick + Action + End turn | Create + Share (share must follow create) |
+
+For PTB composability, use `public fun` (not `entry fun`). Provide both a `public fun` for composition and `entry fun` wrapper for direct calls.
