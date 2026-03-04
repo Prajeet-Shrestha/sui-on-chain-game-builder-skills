@@ -30,6 +30,7 @@ Rules to avoid common mistakes when building on-chain games with the engine.
 | 20 | **Only import what you use** — remove unused aliases | Import "just in case" | Unused imports cause W09001 warnings that break builds. |
 | 21 | **Only define constants you use** | Define placeholder error codes you haven't wired up | Unused constants cause W09011 warnings that break builds. |
 | 22 | **Use plain arithmetic** (`+`, `-`, `*`, `/`, `%`) | Use `wrapping_mul`, `checked_add`, `saturating_sub` | Move does NOT have these methods. Use `assert!` guards for overflow protection. |
+| 23 | **Use `&World` for read-only access** | Use `&mut World` when you only read | Unused `&mut` causes W09014 warnings. Only use `&mut` when calling mutating functions. |
 
 ---
 
@@ -86,4 +87,24 @@ let next = a.wrapping_mul(seed);
 let safe = hp.saturating_sub(damage);
 // ✅ Plain operators with guards
 let clamped = if (damage > hp) { 0 } else { hp - damage };
+```
+
+### 6. Unused imports and constants
+```move
+// ❌ W09001 / W09011 — FAIL the build
+use std::string::String;             // never used
+use systems::grid_sys::{Self, Grid}; // Self never used
+const ENotAllDone: u64 = 115;        // never referenced
+
+// ✅ Only import what you call
+use systems::grid_sys::Grid;
+// Delete ENotAllDone if unused
+```
+
+### 7. Unnecessary `&mut` when `&` suffices
+```move
+// ❌ W09014: unused mutable reference parameter
+public fun get_score(world: &mut World): u64 { ... }
+// ✅ Use immutable reference for read-only access
+public fun get_score(world: &World): u64 { ... }
 ```
