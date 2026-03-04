@@ -290,6 +290,70 @@ fun test_create_and_join_game() {
 }
 ```
 
+### ⚠️ CRITICAL: `take_shared` with Multiple Shared Objects of Same Type
+
+When your game shares multiple objects of the same type (e.g., 1 player + 8 NPC entities), `test_scenario::take_shared<Entity>(&scenario)` returns a **non-deterministic** entity — it may grab an NPC instead of the player.
+
+**This causes `borrow_child_object` abort (code 1)** when the test tries to read dynamic fields that only exist on the player entity.
+
+**Fix: Use `take_shared_by_id` to retrieve specific entities:**
+
+```move
+use entity::entity::Entity;
+use systems::grid_sys::Grid;
+use systems::turn_sys::TurnState;
+
+#[test]
+fun test_move_player() {
+    let admin = @0xAD;
+    let mut scenario = test_scenario::begin(admin);
+    {
+        game::init_for_testing(test_scenario::ctx(&mut scenario));
+    };
+    // Setup board — spawns player + NPCs
+    test_scenario::next_tx(&mut scenario, admin);
+    let player_id;  // Track the player entity ID
+    {
+        let mut session = test_scenario::take_shared<GameSession>(&scenario);
+        let mut world = test_scenario::take_shared<World>(&scenario);
+        let c = clock::create_for_testing(test_scenario::ctx(&mut scenario));
+        game::setup_board(&mut session, &mut world, &c, test_scenario::ctx(&mut scenario));
+        // Store the player entity ID from the session (if accessible)
+        player_id = session.player_entity_id().extract();
+        test_scenario::return_shared(session);
+        test_scenario::return_shared(world);
+        clock::destroy_for_testing(c);
+    };
+    // Move player — MUST use take_shared_by_id because multiple Entities are shared
+    test_scenario::next_tx(&mut scenario, admin);
+    {
+        let mut session = test_scenario::take_shared<GameSession>(&scenario);
+        let world = test_scenario::take_shared<World>(&scenario);
+        let mut grid = test_scenario::take_shared<Grid>(&scenario);
+        let mut turn_state = test_scenario::take_shared<TurnState>(&scenario);
+        // ✅ CORRECT: use take_shared_by_id to get the specific player entity
+        let mut player = test_scenario::take_shared_by_id<Entity>(&scenario, player_id);
+        game::move_player(
+            &mut session, &world, &mut grid, &mut turn_state,
+            &mut player, 3, // RIGHT
+            test_scenario::ctx(&mut scenario),
+        );
+        test_scenario::return_shared(session);
+        test_scenario::return_shared(world);
+        test_scenario::return_shared(grid);
+        test_scenario::return_shared(turn_state);
+        test_scenario::return_shared(player);
+    };
+    test_scenario::end(scenario);
+}
+```
+
+**Rules for multi-entity tests:**
+- **1 shared type = OK**: `take_shared<GameSession>`, `take_shared<World>` — only 1 of each exists
+- **N shared same type = MUST use `take_shared_by_id`**: When `setup_board` shares N entities, you must track IDs
+- **Store entity IDs**: Save `object::id(&entity)` before sharing, or read from `GameSession` fields
+- **Alternative**: Add a `#[test_only] public fun player_entity_id(s: &GameSession): ID` getter
+
 ---
 
 ## Key Patterns

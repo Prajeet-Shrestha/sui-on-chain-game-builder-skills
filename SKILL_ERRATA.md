@@ -173,3 +173,35 @@ When fixing the skill docs, check each item off.
 - **Discovered**: 2026-03-03, Minesweeper frontend build
 - **Status**: ✅ Fixed
 
+---
+
+## 14. `take_shared<Entity>` grabs wrong entity when multiple are shared
+
+- **Files**: `game_template.md` (Test Module Template)
+- **Issue**: When `setup_board` shares N entities (e.g., 1 player + 8 NPC encounters), `test_scenario::take_shared<Entity>(&scenario)` grabs a **non-deterministic** entity — likely an NPC, not the player. When the test then calls a function that reads player-specific dynamic fields (like `KEY_PENDING_ENCOUNTER`), it aborts with `borrow_child_object` error code 1 because the NPC entity doesn't have that field.
+- **Impact**: Tests that call `move_player`, `attack`, or any action requiring the player entity fail with `dynamic_field::borrow_child_object` abort. Build succeeds, but 2+ tests fail.
+- **Fix**: Use `test_scenario::take_shared_by_id<Entity>(&scenario, player_id)` to retrieve the specific entity. Track the entity ID by saving `object::id(&entity)` before sharing, or via a `#[test_only]` getter on `GameSession`.
+- **Discovered**: 2026-03-04, Love game session (8000372e)
+- **Status**: ✅ Fixed — added multi-entity test pattern to `game_template.md`
+
+---
+
+## 15. `test_scenario::ctx(&scenario)` missing `mut` causes E04006
+
+- **Files**: `game_template.md` (Test Module Template)
+- **Issue**: LLM generates `test_scenario::ctx(&scenario)` (immutable ref) but `ctx()` requires `&mut Scenario` → `E04006: invalid subtype`. This happens in test functions where the LLM correctly uses `&mut` on `test_scenario::begin()` but then drops the `mut` on subsequent `ctx()` calls.
+- **Impact**: All tests fail at compile time with `Given: '&sui::test_scenario::Scenario'`, `Expected: '&mut sui::test_scenario::Scenario'`.
+- **Fix**: Ensure test template consistently shows `test_scenario::ctx(&mut scenario)` everywhere. The game template already has this correct; the error is a sporadic LLM omission.
+- **Discovered**: 2026-03-04, Love game session (ec19a83f)
+- **Status**: ✅ Template already correct — code fixer handles this on first attempt
+
+---
+
+## 16. `df.objectId` doesn't exist on `DynamicFieldEntry` (Core API)
+
+- **Files**: `reading_data.md`, `common_recipes.md`, `cheatsheet.md`
+- **Issue**: The ECS entity reading pattern used `dynFields.dynamicFields.map(df => df.objectId)` to batch-fetch dynamic field objects. But `listDynamicFields` in the Core API returns only `.name` and `.type` per entry — no `.objectId`. This caused `TS2339: Property 'objectId' does not exist on type 'DynamicFieldEntry'`.
+- **Impact**: Frontend build failure on any hook reading entity components.
+- **Fix**: Replaced the batch `getObjects` pattern with per-field `getDynamicField({ parentId, name: field.name })` calls, which is the correct Core API approach.
+- **Discovered**: 2026-03-04, Love game session (ec19a83f)
+- **Status**: ✅ Fixed — all 3 skill files updated
