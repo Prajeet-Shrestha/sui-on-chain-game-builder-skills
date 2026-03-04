@@ -49,10 +49,12 @@ my_game = "0x0"
 module my_game::game;
 
 // === Imports ===
-// NOTE: sui::object (UID, ID), sui::transfer, sui::tx_context, sui::event
+// NOTE: sui::object (UID, ID), sui::transfer, sui::tx_context
 //       are auto-imported in Move 2024 — do NOT import them explicitly.
+// IMPORTANT: sui::event is NOT auto-imported — you MUST import it.
 use std::ascii;
 use sui::clock::Clock;
+use sui::event;
 use world::world::{Self, World};
 use systems::grid_sys::{Self, Grid};
 use systems::turn_sys::{Self, TurnState};
@@ -223,7 +225,7 @@ entry fun take_action(
 // === Internal Helpers ===
 
 fun find_player_index(players: &vector<address>, player: address): u64 {
-    let i = 0;
+    let mut i = 0;
     let len = vector::length(players);
     while (i < len) {
         if (*vector::borrow(players, i) == player) {

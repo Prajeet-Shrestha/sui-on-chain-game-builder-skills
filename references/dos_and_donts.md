@@ -23,7 +23,8 @@ Rules to avoid common mistakes when building on-chain games with the engine.
 | 13 | **Read into local variables** before mutating same entity | Hold `&Entity` while calling `borrow_mut` | Move's borrow checker rejects simultaneous `&` and `&mut`. |
 | 14 | **Use `entity::share(entity)`** to share Entity objects | Use `transfer::public_transfer()` on Entity | Entity has `key` only (no `store`). Use the engine wrapper. |
 | 15 | **Spawn tiles/entities in a post-init setup function** with `clock: &Clock` | Call `spawn_*` or `entity::new` inside `init()` | `init()` cannot accept shared objects like `Clock`. |
-| 16 | **Let Move 2024 auto-import** `sui::object`, `sui::transfer`, `sui::tx_context`, `sui::event` | Write `use sui::object::{Self, UID, ID};` etc. | Move 2024 auto-imports these. Explicit imports cause W02021 warnings. |
+| 16 | **Let Move 2024 auto-import** `sui::object`, `sui::transfer`, `sui::tx_context` | Write `use sui::object::{Self, UID, ID};` etc. | Move 2024 auto-imports these. Explicit imports cause W02021 warnings. |
+| 16b | **Explicitly import `sui::event`** — write `use sui::event;` | Assume `event` is auto-imported | `sui::event` is NOT auto-imported. Missing import causes E03006. |
 | 17 | **Only list engine packages** in `Move.toml` deps | Add `Sui = { git = "..." }` to `Move.toml` | Adding Sui explicitly disables auto-injection of other framework deps. |
 | 18 | **Use a distinct module name** for test files | Reuse the game module name in test files | Move does not allow two files to declare the same module. |
 | 19 | **Use `world::share_grid`/`world::share_turn_state`** for engine types | Use `transfer::share_object()` on objects from other modules | `share_object()` is a private transfer — only works inside the defining module. |
@@ -31,6 +32,9 @@ Rules to avoid common mistakes when building on-chain games with the engine.
 | 21 | **Only define constants you use** | Define placeholder error codes you haven't wired up | Unused constants cause W09011 warnings that break builds. |
 | 22 | **Use plain arithmetic** (`+`, `-`, `*`, `/`, `%`) | Use `wrapping_mul`, `checked_add`, `saturating_sub` | Move does NOT have these methods. Use `assert!` guards for overflow protection. |
 | 23 | **Use `&World` for read-only access** | Use `&mut World` when you only read | Unused `&mut` causes W09014 warnings. Only use `&mut` when calling mutating functions. |
+| 24 | **Declare loop counters with `let mut`** — e.g. `let mut i = 0;` | Write `let i = 0;` when `i` is reassigned in a loop | `E04024: invalid usage of immutable variable`. Move 2024 requires explicit `mut` for any reassigned variable. |
+| 25 | **Use valid hex in test addresses** — digits 0-9 and letters A-F only | Write `@0xCAT`, `@0xDOG`, `@0xBEEF_FACE` with non-hex letters | `E01002: unexpected token`. Hex only supports 0-9 and A-F. Use `@0xCA`, `@0xAD`, `@0xB1`. |
+| 26 | **Always use `&mut scenario`** in `test_scenario::ctx()` calls | Write `test_scenario::ctx(&scenario)` (missing `mut`) | `E04006: invalid subtype`. `ctx()` requires `&mut Scenario`, not `&Scenario`. |
 
 ---
 
@@ -56,6 +60,9 @@ use sui::object::{Self, UID, ID};
 use sui::transfer;
 use sui::tx_context::{Self, TxContext};
 // ✅ Just use them directly — no import needed
+
+// ⚠️ sui::event is NOT auto-imported — you MUST import it explicitly:
+use sui::event;  // ✅ REQUIRED for event::emit()
 ```
 
 ### 3. Using `transfer::share_object` on cross-module types
@@ -107,4 +114,31 @@ use systems::grid_sys::Grid;
 public fun get_score(world: &mut World): u64 { ... }
 // ✅ Use immutable reference for read-only access
 public fun get_score(world: &World): u64 { ... }
+```
+
+### 8. Immutable loop counter (E04024)
+```move
+// ❌ E04024: can't assign to immutable variable
+let i = 0;
+while (i < len) {
+    // ...
+    i = i + 1;  // ERROR — 'i' is immutable
+};
+// ✅ Declare with `mut`
+let mut i = 0;
+while (i < len) {
+    // ...
+    i = i + 1;  // OK — 'i' is mutable
+};
+```
+
+### 9. Invalid hex in test addresses (E01002)
+```move
+// ❌ E01002: 'T' is not a valid hex digit
+let admin = @0xCAT;
+let player = @0xDOG;
+// ✅ Use only 0-9, A-F
+let admin = @0xCA;
+let player = @0xAD;
+let player2 = @0xB1;
 ```

@@ -205,3 +205,25 @@ When fixing the skill docs, check each item off.
 - **Fix**: Replaced the batch `getObjects` pattern with per-field `getDynamicField({ parentId, name: field.name })` calls, which is the correct Core API approach.
 - **Discovered**: 2026-03-04, Love game session (ec19a83f)
 - **Status**: ✅ Fixed — all 3 skill files updated
+
+---
+
+## 17. LLM omits `mut` on loop counter variables (E04024)
+
+- **Files**: `system_prompt.md`, `dos_and_donts.md`, `game_template.md`, `prompts.py` (MOVE_SYNTAX_RULES)
+- **Issue**: The LLM consistently generates `let i = 0;` for loop counters instead of `let mut i = 0;`. Move 2024 requires explicit `mut` for any variable that is reassigned, causing `E04024: invalid usage of immutable variable`.
+- **Impact**: Every game with a while-loop fails to compile. The code fixer sometimes fixes it but often re-introduces the same error.
+- **Fix**: Added explicit rules to `system_prompt.md` (CRITICAL RULES), `dos_and_donts.md` (Rule #24, Pitfall #8), `MOVE_SYNTAX_RULES` in `prompts.py`, and fixed the `find_player_index` helper in `game_template.md` to use `let mut i = 0`.
+- **Discovered**: 2026-03-04, Cat Game (92f08bb2) and Cat Dash (b1a857f8) sessions
+- **Status**: ✅ Fixed
+
+---
+
+## 18. LLM uses non-hex letters in test address literals (E01002)
+
+- **Files**: `system_prompt.md`, `dos_and_donts.md`, `prompts.py` (MOVE_SYNTAX_RULES)
+- **Issue**: For games about cats/dogs/etc., the LLM generates "clever" test addresses like `@0xCAT` or `@0xDOG`. The letters T, G, etc. are not valid hex digits (only 0-9, A-F), causing `E01002: unexpected token`.
+- **Impact**: All tests fail at parse time.
+- **Fix**: Added explicit rules forbidding non-hex address literals, with examples in `system_prompt.md`, `dos_and_donts.md` (Rule #25, Pitfall #9), and `MOVE_SYNTAX_RULES`.
+- **Discovered**: 2026-03-04, Cat Dash session (b1a857f8)
+- **Status**: ✅ Fixed
